@@ -45,26 +45,29 @@ _POS_MAP: dict[str, list[str]] = {
 
 def _get_embedding(texts: list[str]) -> np.ndarray:
     """
-    Call the local Ollama embedding API.
-
-    Raises
-    ------
-    requests.ConnectionError   : Ollama is not running.
-    requests.HTTPError         : Non-2xx response from Ollama.
-    KeyError                   : Unexpected response format from Ollama.
+    Call the local Ollama embedding API forcing CPU usage.
     """
-    payload = {"model": EMBED_MODEL, "input": texts}
+    payload = {
+        "model": EMBED_MODEL,
+        "input": texts,
+        # Adding options here forces Ollama to offload 0 layers to GPU
+        "options": {
+            "num_gpu": 0
+        }
+    }
+    
     r = requests.post(OLLAMA_API, json=payload, timeout=30)
     r.raise_for_status()
     data = r.json()
+    
     if "embeddings" in data:
         return np.array(data["embeddings"])
     if "embedding" in data:
         return np.array([data["embedding"]])
+        
     raise KeyError(
         f"Unexpected Ollama response — expected 'embeddings' key, got: {list(data.keys())}"
     )
-
 
 def _fetch_candidates(word_form: str, spacy_lemma: str) -> list[dict]:
     """
@@ -123,11 +126,19 @@ def _fetch_candidates(word_form: str, spacy_lemma: str) -> list[dict]:
                 (l for l in entry.get("languages", []) if l.get("lang") == "swe"),
                 {},
             )
+
+            # The Karp API occasionally returns `baseform` as a list of strings
+            # rather than a plain string.  Normalise to str so that all
+            # downstream callers can safely call .lower() on it.
+            raw_baseform = swe.get("baseform", wf)
+            if isinstance(raw_baseform, list):
+                raw_baseform = raw_baseform[0] if raw_baseform else wf
+
             results.append(
                 {
                     "id":          sid,
                     "pos":         swe.get("partOfSpeech", "?"),
-                    "baseform":    swe.get("baseform", wf),
+                    "baseform":    raw_baseform,
                     "definition":  defn,
                     "inflections": entry.get("inflectionTable", []),
                 }
