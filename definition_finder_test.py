@@ -1,115 +1,160 @@
-import spacy
-import requests
-import numpy as np
-import time
+"""
+definition_finder_test.py
+=========================
+PASS/FAIL test harness for find_definition().
 
-# Load local Swedish NLP
-nlp = spacy.load("sv_core_news_lg")
+Each test case specifies:
+  - sentence       : Full Swedish sentence.
+  - word           : The surface-form word to look up.
+  - char_index     : Character offset of (any character within) the target word.
+  - expect_id_prefix   : The returned sense ID must start with this prefix.
+  - expect_in_def      : This substring must appear in the returned definition.
+  - expect_not_in_def  : This substring must NOT appear in the returned definition.
+  (All "expect_*" fields are optional; omit any that are not relevant.)
 
-KARP_API = "https://spraakbanken4.it.gu.se/karp/v7/query/lexin"
-OLLAMA_API = "http://localhost:11434/api/embed"
-MODEL = "bge-m3" # Ensure you have run 'ollama pull bge-m3'
+Expected values are grounded in the actual Lexin API data confirmed by
+a probe on 2026-05-26:
 
-def get_embedding(texts):
-    """Robust Ollama call with error reporting."""
-    payload = {"model": MODEL, "input": texts}
-    try:
-        r = requests.post(OLLAMA_API, json=payload, timeout=30)
-        r.raise_for_status()
-        data = r.json()
-        if "embeddings" in data:
-            return np.array(data["embeddings"])
-        elif "embedding" in data: # Fallback for some Ollama versions
-            return np.array([data["embedding"]])
+  banan..1  (fruit) : "en böjd tropisk frukt med kraftigt gult skal"
+                       forms: bananen, bananer, bananerna
+  bana..1   (track) : "väg; järnväg"            forms: banan, banor, banorna
+  bana..2           : "färdväg"                  forms: banan, banor, banorna
+  bana..3           : "karriär"                  forms: banan, banor, banorna
+  bana..4           : "anläggning med plant underlag (särskilt för tävlingar)"
+                       forms: banan, banor, banorna
+  får..1    (sheep) : "ett ullhårigt djur som hålls som husdjur (släktet Ovis)"
+  får..2    (verb)  : "tar emot, erhåller"
+  får..3    (verb)  : "har tillåtelse att"
+  får..4    (verb)  : "är tvungen, måste"
+"""
+
+import traceback
+from definition_finder import find_definition
+
+# ---------------------------------------------------------------------------
+# Test cases
+# ---------------------------------------------------------------------------
+
+TEST_CASES = [
+    {
+        "name": "banan — frukt (obestämd sg, föregås av 'En')",
+        "sentence":    "En banan låg på banan där bilarna körde.",
+        "word":        "banan",
+        "char_index":  3,
+        # 'En' is an explicit indefinite article → SpaCy assigns Definite=Ind.
+        # The fruit entry (banan..1) has 'banan' as its baseform (= indef sg).
+        # All bana..x entries have 'banan' as their def.sg inflection → incompatible.
+        "expect_id_prefix":  "lexin--banan",
+        "expect_in_def":     "frukt",
+    },
+    {
+        "name": "banan — bana (bestämd sg, föregås av 'på')",
+        "sentence":    "En banan låg på banan där bilarna körde.",
+        "word":        "banan",
+        "char_index":  16,
+        # 'på banan' has no article; SpaCy morphology → Definite=Def.
+        # 'banan' is the def.sg form of bana..x → compatible.
+        # The fruit entry (banan..1) has its def.sg as 'bananen', not 'banan'
+        # → incompatible with a definite reading.
+        "expect_id_prefix":  "lexin--bana",
+        "expect_not_in_def": "frukt",
+    },
+    {
+        "name": "får — verb (inledande frågeord, SpaCy → VERB)",
+        "sentence":    "Får får får? Nej, får får lamm!",
+        "word":        "får",
+        "char_index":  0,
+        # "Får X Y?" — verb-initial question. SpaCy should tag as VERB.
+        # POS filter retains only verb senses (får..2/3/4).
+        # The sheep noun sense (får..1) must NOT be returned.
+        "expect_not_in_def": "djur",
+    },
+    {
+        "name": "får — substantiv (subjekt av verb, SpaCy → NOUN)",
+        "sentence":    "Får får får? Nej, får får lamm!",
+        "word":        "får",
+        "char_index":  4,
+        # Second token is the subject noun 'får' (sheep).
+        # SpaCy should tag as NOUN; POS filter retains only får..1.
+        "expect_id_prefix": "lexin--får..1",
+        "expect_in_def":    "djur",
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# Runner
+# ---------------------------------------------------------------------------
+
+def _check(result: dict | None, case: dict) -> list[str]:
+    """Return a list of failure messages; empty list = PASS."""
+    failures = []
+
+    if result is None:
+        failures.append("find_definition returned None (no candidates)")
+        return failures
+
+    defn = result.get("definition", "")
+    sid  = result.get("id", "")
+
+    if prefix := case.get("expect_id_prefix"):
+        if not sid.startswith(prefix):
+            failures.append(f"ID mismatch: got '{sid}', expected prefix '{prefix}'")
+
+    if substr := case.get("expect_in_def"):
+        if substr not in defn:
+            failures.append(f"Definition missing '{substr}': got '{defn}'")
+
+    if substr := case.get("expect_not_in_def"):
+        if substr in defn:
+            failures.append(f"Definition wrongly contains '{substr}': got '{defn}'")
+
+    return failures
+
+
+def run_tests() -> None:
+    passed = 0
+    failed = 0
+
+    for case in TEST_CASES:
+        name        = case["name"]
+        sentence    = case["sentence"]
+        word        = case["word"]
+        char_index  = case["char_index"]
+
+        print(f"\n" + "-" * 70)
+        print(f"TEST : {name}")
+        print(f"      '{sentence}'  word='{word}'  @{char_index}")
+
+        try:
+            result = find_definition(sentence, word, char_index)
+        except Exception as exc:
+            print(f"  EXCEPTION: {exc}")
+            traceback.print_exc()
+            failed += 1
+            print("  ✗ FAIL")
+            continue
+
+        failures = _check(result, case)
+
+        if result:
+            print(f"  id         : {result['id']}")
+            print(f"  definition : {result['definition']}")
+            print(f"  score      : {result['score']:.4f}")
+
+        if failures:
+            for msg in failures:
+                print(f"  ✗ {msg}")
+            print("  ✗ FAIL")
+            failed += 1
         else:
-            raise KeyError(f"Unexpected Ollama response: {data}")
-    except Exception as e:
-        print(f"!!! OLLAMA ERROR: {e}")
-        # If bge-m3 fails, try to fall back to nomic or exit
-        return None
+            print("  [PASS]")
+            passed += 1
 
-def get_lexin_definitions(word, lemma):
-    """Fetches definitions and strips them for better embedding comparison."""
-    # Aggressively fetch both fruit and track candidates
-    search_terms = {word.lower(), lemma.lower()}
-    if word.lower() == "banan":
-        search_terms.update(["banan", "bana"])
-        
-    meanings = []
-    for term in search_terms:
-        params = {"q": f"equals|languages.baseform|{term}", "size": 10}
-        r = requests.get(KARP_API, params=params)
-        if r.status_code == 200:
-            for hit in r.json().get('hits', []):
-                entry = hit.get('entry', {})
-                swe_info = next((l for l in entry.get('languages', []) if l.get('lang') == 'swe'), {})
-                pos = swe_info.get('partOfSpeech', 'unknown')
-                definition = entry.get('sense', {}).get('definition', {}).get('text', '')
-                
-                if definition:
-                    meanings.append({
-                        "id": entry.get('sense', {}).get('senseid', 'unknown'),
-                        "pos": pos,
-                        "definition": definition,
-                        "term": term
-                    })
-    # Remove duplicates
-    return list({m['id']: m for m in meanings}.values())
+    print("\n" + "=" * 70)
+    print(f"Results: {passed}/{passed + failed} passed")
+    print("=" * 70)
 
-def solve_task(sentence, char_index):
-    doc = nlp(sentence)
-    token = next((t for t in doc if t.idx <= char_index < (t.idx + len(t.text))), None)
-    if not token: return print(f"Ingen token vid index {char_index}")
-
-    print(f"\n--- TEST: '{sentence}' ---")
-    print(f"Analys: '{token.text}' | POS: {token.pos_}")
-
-    # 1. Fetch candidates
-    candidates = get_lexin_definitions(token.text, token.lemma_)
-    
-    # 2. POS Filter (Noun only for banan)
-    pos_map = {"NOUN": "nn", "VERB": "vb", "AUX": "vb", "ADJ": "jj"}
-    target_pos = pos_map.get(token.pos_, "")
-    candidates = [c for c in candidates if target_pos in c['pos']]
-
-    if not candidates:
-        return print("Hittade inga definitioner.")
-
-    # 3. Create context-aware query
-    # We use a 'Fill in the blank' style which BGE-M3 is very good at.
-    before = sentence[:token.idx]
-    after = sentence[token.idx + len(token.text):]
-    context_str = f"{before}<{token.text.upper()}>{after}"
-    
-    query = f"Vad är den mest korrekta definitionen av ordet <{token.text}> i detta sammanhang: {context_str}"
-    
-    # 4. Get Embeddings
-    all_texts = [query] + [f"Definition: {c['definition']}" for c in candidates]
-    embeds = get_embedding(all_texts)
-    
-    if embeds is None: return
-
-    # 5. Score using Cosine Similarity
-    query_vec = embeds[0]
-    doc_vecs = embeds[1:]
-    scores = np.dot(doc_vecs, query_vec) / (np.linalg.norm(doc_vecs, axis=1) * np.linalg.norm(query_vec))
-    
-    results = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
-    
-    for c, s in results:
-        print(f"  [{s:.4f}] {c['id']} | {c['definition']}")
-
-    print(f"VINNARE: {results[0][0]['definition']}")
 
 if __name__ == "__main__":
-    s_mix = "En banan låg på banan där bilarna körde."
-    
-    t_start = time.perf_counter()
-    
-    # Index 3 is the 'b' in the first 'banan'
-    solve_task(s_mix, 3)
-    
-    # Index 16 is the 'b' in the second 'banan'
-    solve_task(s_mix, 16)
-    
-    print(f"\nTotal tid: {time.perf_counter() - t_start:.2f}s")
+    run_tests()
