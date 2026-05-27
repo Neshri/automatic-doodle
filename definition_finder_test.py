@@ -79,6 +79,14 @@ TEST_CASES = [
         "expect_id_prefix": "lexin--får..1",
         "expect_in_def":    "djur",
     },
+    {
+        "name": "Math problem",
+        "sentence": "Förenkla bråket så långt som möjligt.  ",
+        "word": "bråket",
+        "char_index": 10,
+        "expect_id_prefix": "lexin--bråk",
+        "expect_in_def": "tal",
+    }
 ]
 
 
