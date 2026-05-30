@@ -7,8 +7,6 @@ and BGE-M3 embeddings (via Ollama) as a fallback scorer.
 Public interface
 ----------------
     find_definition(sentence, word, char_index) -> dict | None
-
-The function is completely general — no hardcoded word-specific overrides.
 """
 
 import spacy
@@ -21,53 +19,45 @@ import numpy as np
 
 nlp = spacy.load("sv_core_news_lg")
 
-KARP_API   = "https://spraakbanken4.it.gu.se/karp/v7/query/lexin"
-OLLAMA_API = "http://localhost:11434/api/embed"
-EMBED_MODEL = "nomic-embed-text-v2-moe"
+KARP_API    = "https://spraakbanken4.it.gu.se/karp/v7/query/lexin"
+OLLAMA_API  = "http://localhost:11434/api/embed"
+EMBED_MODEL = "bge-m3"
 
-# Multiplier applied to candidates whose Lexin POS matches SpaCy's guess.
-# SpaCy is usually right, so we reward agreement — but we never hard-reject
-# mismatching candidates, because SpaCy can be wrong on ambiguous tokens
-# (e.g. sentence-initial "Får" tagged VERB when it is actually a noun).
-# A value of 1.5 means the embedding must differ by >50 % to override SpaCy.
-POS_BONUS: float = 1.5
+POS_BONUS: float = 1.4
 
-# SpaCy Universal POS → Lexin POS code prefixes
 _POS_MAP: dict[str, list[str]] = {
     "NOUN":  ["nn"],
     "PROPN": ["nn"],
     "VERB":  ["vb", "vbm"],
     "AUX":   ["vb", "vbm"],
-    "ADJ":   ["jj", "hjj"],
+    "ADJ":   ["jj", "hjj", "av"],
     "ADV":   ["ab"],
     "PRON":  ["pn"],
     "NUM":   ["rg", "ro"],
     "INTJ":  ["in"],
 }
 
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+def _log(msg: str) -> None:
+    print(f"  {msg}")
+
+def _log_candidates(label: str, candidates: list[dict], preferred: set[str] | None = None) -> None:
+    stars = lambda c: " ★" if preferred and c["id"] in preferred else ""
+    rows  = [f"{c['id']:<35} pos={c['pos']:<6} {c['definition']!r}{stars(c)}"
+             for c in candidates]
+    print(f"  [{label}: {len(candidates)}]")
+    for r in rows:
+        print(f"    {r}")
 
 # ---------------------------------------------------------------------------
 # API helpers
 # ---------------------------------------------------------------------------
 
 def _get_embedding(texts: list[str]) -> np.ndarray:
-    """
-    Call the local Ollama embedding API.
-
-    Raises
-    ------
-    requests.ConnectionError   : Ollama is not running.
-    requests.HTTPError         : Non-2xx response from Ollama.
-    KeyError                   : Unexpected response format from Ollama.
-    """
-    payload = {
-        "model": EMBED_MODEL,
-        "input": texts,
-        # Adding options here forces Ollama to offload 0 layers to GPU
-        "options": {
-            "num_gpu": 0
-        }
-    }
+    payload = {"model": EMBED_MODEL, "input": texts, "options": {"num_gpu": 0}}
     r = requests.post(OLLAMA_API, json=payload, timeout=30)
     r.raise_for_status()
     data = r.json()
@@ -75,30 +65,10 @@ def _get_embedding(texts: list[str]) -> np.ndarray:
         return np.array(data["embeddings"])
     if "embedding" in data:
         return np.array([data["embedding"]])
-    raise KeyError(
-        f"Unexpected Ollama response — expected 'embeddings' key, got: {list(data.keys())}"
-    )
+    raise KeyError(f"Unexpected Ollama response: {list(data.keys())}")
 
 
 def _fetch_candidates(word_form: str, spacy_lemma: str) -> list[dict]:
-    """
-    Fetch every Lexin sense where *word_form* appears as a baseform
-    OR as an inflected form in the inflection table.
-
-    Also queries *spacy_lemma* as a baseform when it differs from
-    *word_form*, which handles cases where SpaCy correctly lemmatises an
-    inflected token (e.g. "körde" → "köra").
-
-    Parameters
-    ----------
-    word_form   : Surface form from the sentence (lowercased here).
-    spacy_lemma : Lemma as assigned by SpaCy (lowercased here).
-
-    Returns
-    -------
-    List of candidate dicts with keys:
-        id, pos, baseform, definition, inflections
-    """
     wf    = word_form.lower()
     lemma = spacy_lemma.lower()
 
@@ -107,47 +77,38 @@ def _fetch_candidates(word_form: str, spacy_lemma: str) -> list[dict]:
         f"||inflectionTable(equals|writtenForm|{wf}))"
     )
     queries: set[str] = {q_form}
-
     if lemma != wf:
         queries.add(f"equals|languages.baseform|{lemma}")
 
     seen_ids: set[str] = set()
-    results: list[dict] = []
+    results:  list[dict] = []
 
     for q in queries:
         resp = requests.get(KARP_API, params={"q": q, "size": 25})
         resp.raise_for_status()
         for hit in resp.json().get("hits", []):
-            entry  = hit.get("entry", {})
-            sense  = entry.get("sense", {})
-            sid    = sense.get("senseid", "")
-            defn   = sense.get("definition", {}).get("text", "")
-
+            entry = hit.get("entry", {})
+            sense = entry.get("sense", {})
+            sid   = sense.get("senseid", "")
+            defn  = sense.get("definition", {}).get("text", "")
             if not sid or not defn or sid in seen_ids:
                 continue
             seen_ids.add(sid)
 
             swe = next(
-                (l for l in entry.get("languages", []) if l.get("lang") == "swe"),
-                {},
+                (l for l in entry.get("languages", []) if l.get("lang") == "swe"), {}
             )
-
-            # The Karp API occasionally returns `baseform` as a list of strings
-            # rather than a plain string.  Normalise to str so that all
-            # downstream callers can safely call .lower() on it.
             raw_baseform = swe.get("baseform", wf)
             if isinstance(raw_baseform, list):
                 raw_baseform = raw_baseform[0] if raw_baseform else wf
 
-            results.append(
-                {
-                    "id":          sid,
-                    "pos":         swe.get("partOfSpeech", "?"),
-                    "baseform":    raw_baseform,
-                    "definition":  defn,
-                    "inflections": entry.get("inflectionTable", []),
-                }
-            )
+            results.append({
+                "id":          sid,
+                "pos":         swe.get("partOfSpeech", "?"),
+                "baseform":    raw_baseform,
+                "definition":  defn,
+                "inflections": entry.get("inflectionTable", []),
+            })
 
     return results
 
@@ -157,18 +118,8 @@ def _fetch_candidates(word_form: str, spacy_lemma: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def _preferred_by_pos(candidates: list[dict], spacy_pos: str) -> set[str]:
-    """
-    Return the set of candidate IDs whose Lexin POS is compatible with
-    SpaCy's Universal POS tag.  Candidates with POS '?' are never preferred.
-
-    This is deliberately *advisory* — callers use the returned set to apply
-    a scoring bonus, not to hard-filter.  SpaCy can misparse highly ambiguous
-    tokens (e.g. "får" at sentence-initial position), so we must never
-    eliminate candidates solely on the basis of its POS guess.
-    """
     allowed = _POS_MAP.get(spacy_pos, [])
     if not allowed:
-        # Unknown SpaCy POS — prefer everything except untagged phrasal entries.
         return {c["id"] for c in candidates if c["pos"] != "?"}
     return {
         c["id"]
@@ -178,176 +129,167 @@ def _preferred_by_pos(candidates: list[dict], spacy_pos: str) -> set[str]:
 
 
 def _form_role(candidate: dict, word_form: str) -> str | None:
-    """
-    Determine what grammatical role *word_form* plays in *candidate*.
-
-    Returns
-    -------
-    "baseform"  — word_form equals the Lexin baseform (sg.indef for nouns).
-    "Def"       — word_form appears in the inflection table as a definite form.
-    "Ind"       — word_form appears in the inflection table as an indefinite form.
-    "other"     — word_form is in the table but definiteness is not parseable
-                  from the MSD string (e.g. verb present-tense forms).
-    None        — word_form is not found in this candidate at all.
-    """
     wf = word_form.lower()
-
     if candidate["baseform"].lower() == wf:
         return "baseform"
-
     for infl in candidate.get("inflections", []):
         if infl.get("writtenForm", "").lower() != wf:
             continue
-
-        # Check "indef"/"obest" BEFORE "def"/"best" because "indef" contains
-        # "def" as a substring — checking "def" first would misclassify.
         msd = (infl.get("lexinMsd", "") + " " + infl.get("msd", "")).lower()
-
         if "indef" in msd or "obest" in msd:
             return "Ind"
         if "best" in msd or ".def" in msd:
             return "Def"
-
         return "other"
-
     return None
 
 
 def _filter_by_form(candidates: list[dict], word_form: str) -> list[dict]:
-    """
-    Hard form-existence filter: remove candidates that have a non-empty
-    inflection table that does NOT contain *word_form* at all — meaning
-    the surface word form is morphologically impossible for that sense.
-
-    Candidates without any inflection data pass through unchanged.
-    """
-    def _ok(c: dict) -> bool:
-        if not c.get("inflections"):
-            return True
-        return _form_role(c, word_form) is not None
-
-    return [c for c in candidates if _ok(c)]
+    kept    = [c for c in candidates if not c.get("inflections") or _form_role(c, word_form) is not None]
+    removed = len(candidates) - len(kept)
+    if removed:
+        _log(f"form-filter: removed {removed} whose paradigm cannot produce {word_form!r}")
+    return kept
 
 
 def _get_expected_definiteness(token) -> str | None:
-    """
-    Infer the expected definiteness of *token* from SpaCy's dependency
-    parse and morphological tags.
-
-    Priority
-    --------
-    1. Explicit determiner child (article, quantifier, numeral modifier).
-    2. The token's own morphological Definite feature as a fallback.
-
-    Returns 'Def', 'Ind', or None.
-    """
     for child in token.children:
         if child.dep_ in ("det", "quant", "nummod"):
-            morph = child.morph.to_dict()
-            if "Definite" in morph:
-                return morph["Definite"]
+            m = child.morph.to_dict()
+            if "Definite" in m:
+                return m["Definite"]
     return token.morph.to_dict().get("Definite")
 
 
-def _filter_by_definiteness(
-    candidates: list[dict],
-    word_form: str,
-    expected_def: str,
-) -> list[dict]:
-    """
-    Definiteness filter for nouns: keep only candidates where *word_form*
-    occurs in the role that matches *expected_def*.
-
-    'baseform' role is treated as indefinite singular (Lexin convention).
-
-    If the filter would remove all candidates the original list is returned
-    unchanged — this function never produces an empty set.
-    """
-    def _compatible(c: dict) -> bool:
+def _filter_by_definiteness(candidates, word_form, expected_def):
+    def _ok(c):
         role = _form_role(c, word_form)
         if role is None or role == "other":
             return True
-        if role == "baseform":
-            return expected_def == "Ind"
-        return role == expected_def
+        return (role == "baseform" and expected_def == "Ind") or role == expected_def
 
-    filtered = [c for c in candidates if _compatible(c)]
-    return filtered if filtered else candidates
+    kept    = [c for c in candidates if _ok(c)]
+    removed = len(candidates) - len(kept)
+    if removed:
+        _log(f"def-filter:  removed {removed} incompatible with Definite={expected_def!r}")
+    return kept if kept else candidates
 
 
 # ---------------------------------------------------------------------------
 # Scorers
 # ---------------------------------------------------------------------------
 
-def _lesk_score(candidate: dict, doc, target_token) -> int:
-    """
-    Classic Lesk word-overlap score: count how many lemmas of the sentence's
-    content words also appear (as raw tokens) in the definition text.
-    """
-    context_lemmas = {
-        t.lemma_.lower()
-        for t in doc
-        if t.pos_ in ("NOUN", "VERB", "ADJ", "ADV")
-        and t.i != target_token.i
-        and not t.is_stop
-        and len(t.lemma_) > 2
-    }
+def _lesk_score(candidate: dict, context_lemmas: set[str]) -> tuple[int, set]:
     def_tokens = set(candidate["definition"].lower().split())
-    return len(context_lemmas & def_tokens)
+    overlap    = context_lemmas & def_tokens
+    return len(overlap), overlap
 
-_NOMINAL_DEPS = {"nsubj", "nsubj:pass", "obj", "iobj", "obl", "appos"}
 
-def _filter_by_dependency_role(candidates, token):
-    """Keep only noun candidates if token is a nominal argument."""
-    if token.dep_ in _NOMINAL_DEPS:
-        filtered = [c for c in candidates if c["pos"].startswith("nn")]
-        return filtered if filtered else candidates
-    return candidates
+def _morph_to_swedish(morph_dict: dict, spacy_pos: str) -> list[str]:
+    """
+    Translate the most diagnostically useful morphological features into
+    natural Swedish phrases.  Returns a list of short descriptors that
+    can be joined with comma.  Raw UD feature strings are never exposed
+    to the embedding model.
+    """
+    parts = []
+
+    pos_labels = {
+        "NOUN": "substantiv", "PROPN": "substantiv",
+        "VERB": "verb",       "AUX":   "verb",
+        "ADJ":  "adjektiv",   "ADV":   "adverb",
+        "PRON": "pronomen",   "NUM":   "räkneord",
+        "INTJ": "interjektion",
+    }
+    if label := pos_labels.get(spacy_pos):
+        parts.append(label)
+
+    def_map = {"Ind": "obestämd form", "Def": "bestämd form"}
+    if d := def_map.get(morph_dict.get("Definite", "")):
+        parts.append(d)
+
+    num_map = {"Sing": "singular", "Plur": "plural"}
+    if n := num_map.get(morph_dict.get("Number", "")):
+        parts.append(n)
+
+    tense_map = {"Pres": "presens", "Past": "preteritum"}
+    if t := tense_map.get(morph_dict.get("Tense", "")):
+        parts.append(t)
+
+    vf_map = {"Inf": "infinitiv", "Sup": "supinum", "Part": "particip"}
+    if v := vf_map.get(morph_dict.get("VerbForm", "")):
+        parts.append(v)
+
+    deg_map = {"Comp": "komparativ", "Sup": "superlativ"}
+    if d := deg_map.get(morph_dict.get("Degree", "")):
+        parts.append(d)
+
+    return parts
+
 
 def _embedding_scores(
-    candidates: list[dict],
-    sentence: str,
+    candidates:  list[dict],
+    sentence:    str,
     target_token,
     doc,
 ) -> np.ndarray:
-    """
-    Cosine-similarity scores between a cloze query and each definition.
-
-    The query blanks out the target word and foregrounds surrounding
-    content-word lemmas as a semantic hint, biasing the embedding toward
-    the meaning implied by context rather than the surface form.
-    """
     blanked = (
         sentence[: target_token.idx]
         + "___"
         + sentence[target_token.idx + len(target_token.text) :]
     )
 
-    content_lemmas = [
+    target_lemma = target_token.lemma_.lower()
+
+    # Content-word hint — exclude tokens that share lemma/surface with target
+    # to avoid circular context (e.g. "bar … bar … bar" all pointing at bära)
+    content_lemmas = list(dict.fromkeys(
         t.lemma_
         for t in doc
         if t.pos_ in ("NOUN", "VERB", "ADJ")
         and t.i != target_token.i
         and not t.is_stop
         and len(t.lemma_) > 2
-    ]
-    hint = ", ".join(content_lemmas) if content_lemmas else "okänd kontext"
+        and t.lemma_.lower() != target_lemma
+        and t.text.lower()   != target_token.text.lower()
+    ))
 
-    query = (
-        f"Meningen '{blanked}' (nyckelord: {hint}). "
-        f"Det obekanta ordet ___ syftar på:"
+    # Immediate neighbours — keep as-is, including repeated forms of the target
+    # word, since their presence is genuine context (e.g. «en ___ bar in»)
+    left_words  = " ".join(
+        doc[i].text
+        for i in range(max(0, target_token.i - 2), target_token.i)
+        if not doc[i].is_punct
+    )
+    right_words = " ".join(
+        doc[i].text
+        for i in range(target_token.i + 1, min(len(doc), target_token.i + 3))
+        if not doc[i].is_punct
     )
 
-    all_texts = [query] + [c["definition"] for c in candidates]
-    print("\n **** QUERY TEXT START ******* \n ")
-    print(all_texts)
-    print("\n **** QUERY TEXT END *********\n ")
-    embeds    = _get_embedding(all_texts)
+    morph_parts = _morph_to_swedish(target_token.morph.to_dict(), target_token.pos_)
 
-    q_vec  = embeds[0]
-    d_vecs = embeds[1:]
-    norms  = np.linalg.norm(d_vecs, axis=1) * np.linalg.norm(q_vec)
-    norms  = np.where(norms == 0, 1e-10, norms)
+    # Build query — only include each clause when it carries real information
+    ctx_parts = []
+    if left_words or right_words:
+        ctx_parts.append(f"omgivning: «{left_words} ___ {right_words}»")
+    if content_lemmas:
+        ctx_parts.append(f"nyckelord: {', '.join(content_lemmas)}")
+    if morph_parts:
+        ctx_parts.append(f"ordform: {', '.join(morph_parts)}")
+
+    ctx_str = f" ({'; '.join(ctx_parts)})" if ctx_parts else ""
+    query   = f"Texten «{blanked}»{ctx_str}. Det obekanta ordet ___ syftar på:"
+
+    _log(f"embedding query: {query}")
+
+    all_texts = [query] + [c["definition"] for c in candidates]
+
+    embeds    = _get_embedding(all_texts)
+    q_vec     = embeds[0]
+    d_vecs    = embeds[1:]
+    norms     = np.linalg.norm(d_vecs, axis=1) * np.linalg.norm(q_vec)
+    norms     = np.where(norms == 0, 1e-10, norms)
     return np.dot(d_vecs, q_vec) / norms
 
 
@@ -355,117 +297,106 @@ def _embedding_scores(
 # Public API
 # ---------------------------------------------------------------------------
 
-def find_definition(
-    sentence: str,
-    word: str,
-    char_index: int,
-) -> dict | None:
-    """
-    Find the correct Lexin definition for *word* at *char_index* in *sentence*.
+def find_definition(string: str, word: str, char_index: int) -> dict | None:
+    print(f"\n{'─'*60}")
+    print(f"  {word!r} @{char_index}  ·  {string!r}")
+    print(f"{'─'*60}")
 
-    Parameters
-    ----------
-    sentence   : Full Swedish sentence.
-    word       : The surface-form word to disambiguate.
-    char_index : Character offset of any character within the word.
-
-    Returns
-    -------
-    A dict with keys:
-        "definition" : str   — The winning Lexin definition text.
-        "id"         : str   — The Lexin sense ID.
-        "score"      : float — Numeric confidence (higher = more certain).
-    or None if no candidates were found after filtering.
-
-    Raises
-    ------
-    ValueError            : No SpaCy token at char_index.
-    requests.HTTPError    : Any HTTP error from Karp or Ollama.
-    requests.ConnectionError : Ollama or Karp is unreachable.
-    KeyError              : Unexpected Ollama response format.
-    """
-    # ── Step 1: Tokenise with SpaCy ──────────────────────────────────────
-    doc   = nlp(sentence)
+    # Step 1: SpaCy
+    doc   = nlp(string)
     token = next(
-        (t for t in doc if t.idx <= char_index < t.idx + len(t.text)),
-        None,
+        (t for t in doc if t.idx <= char_index < t.idx + len(t.text)), None
     )
     if token is None:
-        raise ValueError(
-            f"No SpaCy token found at char_index={char_index} in '{sentence}'"
-        )
-    print(f"token.text={token.text!r}, token.pos_={token.pos_!r}, token.dep_={token.dep_!r}")
-    # ── Step 2: Fetch all Lexin candidates ───────────────────────────────
+        raise ValueError(f"No token at char_index={char_index}")
+
+    morph_str = ", ".join(f"{k}={v}" for k, v in token.morph.to_dict().items()) or "—"
+    _log(f"token={token.text!r}  lemma={token.lemma_!r}  pos={token.pos_!r}  "
+         f"dep={token.dep_!r}  morph=[{morph_str}]")
+
+    # Step 2: Fetch
     candidates = _fetch_candidates(token.text, token.lemma_)
+    _log(f"karp: {len(candidates)} raw hits")
+
+    candidates = [
+        c for c in candidates
+        if "_" not in c["baseform"] and " " not in c["baseform"]
+        or c["baseform"].replace("_", " ").lower() in string.lower()
+    ]
     if not candidates:
+        _log("→ no candidates after multi-word filter")
         return None
 
-    # ── Step 3: Compute POS-preferred set (advisory — not a hard filter) ─
-    #
-    # SpaCy's POS tagger can be wrong on highly ambiguous tokens, so we
-    # never discard candidates solely because their POS doesn't match.
-    # Instead we record which candidates SpaCy agrees with and apply a
-    # scoring bonus to them later.  The embedding can still override SpaCy
-    # when the contextual evidence is strong enough.
-    pos_preferred: set[str] = _preferred_by_pos(candidates, token.pos_)
+    # Step 3: POS preference
+    pos_preferred = _preferred_by_pos(candidates, token.pos_)
+    _log(f"pos-preferred: {len(pos_preferred)}/{len(candidates)} match spaCy {token.pos_!r} "
+         f"→ {_POS_MAP.get(token.pos_, [])}")
 
-    # ── Step 4: Hard morphological form-existence filter ─────────────────
-    # This filter IS hard because it is based on objective morphological
-    # facts (the word form literally cannot occur in that paradigm), not
-    # on a probabilistic tagger.
+    # Step 4: Form filter
     candidates = _filter_by_form(candidates, token.text)
     if not candidates:
+        _log("→ no candidates after form filter")
         return None
+    pos_preferred = {cid for cid in pos_preferred if any(c["id"] == cid for c in candidates)}
 
-    candidates = _filter_by_dependency_role(candidates, token)
-    if not candidates:
-        return None
-
-    # Keep preferred set in sync after form filtering.
-    pos_preferred = {cid for cid in pos_preferred
-                     if any(c["id"] == cid for c in candidates)}
-
-    # ── Step 5: Definiteness filter (nouns only) ─────────────────────────
+    # Step 5: Definiteness
     if token.pos_ in ("NOUN", "PROPN"):
         expected_def = _get_expected_definiteness(token)
-        if expected_def is not None:
-            candidates = _filter_by_definiteness(
-                candidates, token.text, expected_def
-            )
+        _log(f"definiteness expected: {expected_def!r}")
+        if expected_def:
+            candidates = _filter_by_definiteness(candidates, token.text, expected_def)
+            pos_preferred = {cid for cid in pos_preferred if any(c["id"] == cid for c in candidates)}
 
-    # Single candidate — no scoring needed.
+    _log_candidates("after filters", candidates, preferred=pos_preferred)
+
     if len(candidates) == 1:
         c = candidates[0]
+        _log(f"→ single candidate, returning directly")
         return {"definition": c["definition"], "id": c["id"], "score": 1.0}
 
-    # ── Step 6: Lesk bag-of-words overlap with POS bonus ─────────────────
-    lesk_raw = [_lesk_score(c, doc, token) for c in candidates]
-    lesk = [
+    # Step 6: Lesk
+    context_lemmas = {
+        t.lemma_.lower()
+        for t in doc
+        if t.pos_ in ("NOUN", "VERB", "ADJ", "ADV")
+        and t.i != token.i
+        and not t.is_stop
+        and len(t.lemma_) > 2
+    }
+    lesk_pairs   = [_lesk_score(c, context_lemmas) for c in candidates]
+    lesk_raw     = [s for s, _ in lesk_pairs]
+    lesk_boosted = [
         s * (POS_BONUS if c["id"] in pos_preferred else 1.0)
         for c, s in zip(candidates, lesk_raw)
     ]
-    max_lesk = max(lesk)
+    max_lesk = max(lesk_boosted)
+
     if max_lesk > 0:
-        top = [c for c, s in zip(candidates, lesk) if s == max_lesk]
+        _log(f"lesk context lemmas: {sorted(context_lemmas)}")
+        for c, (raw, overlap), boosted in zip(candidates, lesk_pairs, lesk_boosted):
+            _log(f"  lesk {boosted:.1f}  overlap={sorted(overlap)}  {c['id']}  {c['definition']!r}")
+        top = [c for c, s in zip(candidates, lesk_boosted) if s == max_lesk]
         if len(top) == 1:
             c = top[0]
-            return {
-                "definition": c["definition"],
-                "id":         c["id"],
-                "score":      float(max_lesk),
-            }
+            _log(f"→ lesk winner: {c['id']}  score={max_lesk}")
+            return {"definition": c["definition"], "id": c["id"], "score": float(max_lesk)}
+        _log(f"lesk tie at {max_lesk} — falling through to embedding")
         candidates = top
+    else:
+        _log(f"lesk: all zero (context lemmas: {sorted(context_lemmas)}) — skipping to embedding")
 
-    # ── Step 7: Embedding fallback with POS bonus ─────────────────────────
-    raw_scores = _embedding_scores(candidates, sentence, token, doc)
+    # Step 7: Embedding
+    raw_scores = _embedding_scores(candidates, string, token, doc)
     scores = np.array([
         s * (POS_BONUS if c["id"] in pos_preferred else 1.0)
         for c, s in zip(candidates, raw_scores)
     ])
     best = int(np.argmax(scores))
-    c    = candidates[best]
-    return {
-        "definition": c["definition"],
-        "id":         c["id"],
-        "score":      float(scores[best]),
-    }
+    for i, (c, s) in enumerate(zip(candidates, scores)):
+        mark = " ← WINNER" if i == best else ""
+        preferred_mark = " ★" if c["id"] in pos_preferred else ""
+        _log(f"  emb {s:+.4f}  {c['id']}{preferred_mark}  {c['definition']!r}{mark}")
+
+    c = candidates[best]
+    _log(f"→ embedding winner: {c['id']}  score={scores[best]:.4f}")
+    return {"definition": c["definition"], "id": c["id"], "score": float(scores[best])}

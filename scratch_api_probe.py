@@ -20,5 +20,5 @@ def probe(term):
         print(f"    DEF: {defn}")
         print(f"    FORMS (first 6): {forms}")
 
-for word in ["banan", "bana", "får", "få"]:
+for word in ["rätt"]:
     probe(word)

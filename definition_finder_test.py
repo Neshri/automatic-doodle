@@ -4,7 +4,7 @@ definition_finder_test.py
 PASS/FAIL test harness for find_definition().
 
 Each test case specifies:
-  - sentence       : Full Swedish sentence.
+  - string       : Full Swedish string.
   - word           : The surface-form word to look up.
   - char_index     : Character offset of (any character within) the target word.
   - expect_id_prefix   : The returned sense ID must start with this prefix.
@@ -38,7 +38,7 @@ from definition_finder import find_definition
 TEST_CASES = [
     {
         "name": "banan — frukt (obestämd sg, föregås av 'En')",
-        "sentence":    "En banan låg på banan där bilarna körde.",
+        "string":    "En banan låg på banan där bilarna körde.",
         "word":        "banan",
         "char_index":  3,
         # 'En' is an explicit indefinite article → SpaCy assigns Definite=Ind.
@@ -49,7 +49,7 @@ TEST_CASES = [
     },
     {
         "name": "banan — bana (bestämd sg, föregås av 'på')",
-        "sentence":    "En banan låg på banan där bilarna körde.",
+        "string":    "En banan låg på banan där bilarna körde.",
         "word":        "banan",
         "char_index":  16,
         # 'på banan' has no article; SpaCy morphology → Definite=Def.
@@ -60,18 +60,19 @@ TEST_CASES = [
         "expect_not_in_def": "frukt",
     },
     {
-        "name": "får — verb (inledande frågeord, SpaCy → VERB)",
-        "sentence":    "Får får får? Nej, får får lamm!",
+        "name": "får — verb",
+        "string":    "Får får får? Nej, får får lamm!",
         "word":        "får",
         "char_index":  0,
         # "Får X Y?" — verb-initial question. SpaCy should tag as VERB.
         # POS filter retains only verb senses (får..2/3/4).
         # The sheep noun sense (får..1) must NOT be returned.
+        "expect_in_def": "erhåller",
         "expect_not_in_def": "djur",
     },
     {
-        "name": "får — substantiv (subjekt av verb, SpaCy → NOUN)",
-        "sentence":    "Får får får? Nej, får får lamm!",
+        "name": "får — substantiv",
+        "string":    "Får får får? Nej, får får lamm!",
         "word":        "får",
         "char_index":  4,
         # Second token is the subject noun 'får' (sheep).
@@ -81,11 +82,41 @@ TEST_CASES = [
     },
     {
         "name": "Math problem",
-        "sentence": "Förenkla bråket så långt som möjligt.  ",
+        "string": "Förenkla bråket så långt som möjligt.",
         "word": "bråket",
         "char_index": 10,
         "expect_id_prefix": "lexin--bråk",
         "expect_in_def": "tal",
+    },
+    {
+        "name":"Bära en bar",
+        "string": "Han bar en bar bar in i en bar.",
+        "word": "bar",
+        "char_index": 11,
+        "expect_id_prefix": "lexin--bar",
+        "expect_in_def": "inte täckt"
+    },
+    {
+    "name": "Rätten — domstol",
+    "string": (
+        "Rätten samlades klockan nio på morgonen. "
+        "Domaren frågade om den åtalade förstod anklagelsen. "
+        "Försvarsadvokaten begärde ordet."
+    ),
+    "word": "Rätten",
+    "char_index": 0,
+    "expect_id_prefix": "lexin--rätt",
+    "expect_in_def": "domstol",
+    },
+    {
+    "name": "Rätten — maträtt",
+    "string": (
+        "Rätten serverades med kokt potatis och sås. "
+        "Kocken hade lagat maten sedan tidigt på morgonen."
+    ),
+    "word": "Rätten",
+    "char_index": 0,
+    "expect_in_def": "mat", 
     }
 ]
 
@@ -126,16 +157,16 @@ def run_tests() -> None:
 
     for case in TEST_CASES:
         name        = case["name"]
-        sentence    = case["sentence"]
+        string    = case["string"]
         word        = case["word"]
         char_index  = case["char_index"]
 
         print(f"\n" + "-" * 70)
         print(f"TEST : {name}")
-        print(f"      '{sentence}'  word='{word}'  @{char_index}")
+        print(f"      '{string}'  word='{word}'  @{char_index}")
 
         try:
-            result = find_definition(sentence, word, char_index)
+            result = find_definition(string, word, char_index)
         except Exception as exc:
             print(f"  EXCEPTION: {exc}")
             traceback.print_exc()
