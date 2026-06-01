@@ -9,6 +9,7 @@ Public interface
     find_definition(sentence, word, char_index) -> dict | None
 """
 
+import re
 import spacy
 import requests
 import numpy as np
@@ -81,6 +82,23 @@ def _fetch_candidates(word_form: str, spacy_lemma: str) -> list[dict]:
     if lemma != wf:
         queries.add(f"equals|languages.baseform|{lemma}")
 
+    # sv_core_news_lg sometimes over-lemmatises passive verbs and duplicates
+    # the final vowel (e.g. 'serverades' → lemma 'serveraa' instead of
+    # 'servera').  Collapse any doubled trailing vowel and add as a fallback.
+    clean_lemma = re.sub(r"([aeiouåäö])\1$", r"\1", lemma, flags=re.IGNORECASE)
+    if clean_lemma != lemma:
+        queries.add(f"equals|languages.baseform|{clean_lemma}")
+
+    # For passive verb forms ending in 's', also search the active form
+    # (e.g. 'serverades' → 'serverade'), which appears in Lexin's inflection
+    # table even though the passive form itself does not.
+    if wf.endswith("s") and len(wf) > 2:
+        active_form = wf[:-1]
+        queries.add(
+            f"or(equals|languages.baseform|{active_form}"
+            f"||inflectionTable(equals|writtenForm|{active_form}))"
+        )
+
     seen_ids: set[str] = set()
     results:  list[dict] = []
 
@@ -146,7 +164,22 @@ def _form_role(candidate: dict, word_form: str) -> str | None:
 
 
 def _filter_by_form(candidates: list[dict], word_form: str) -> list[dict]:
-    kept    = [c for c in candidates if not c.get("inflections") or _form_role(c, word_form) is not None]
+    # Lexin's inflection tables store active forms only, so passive verb forms
+    # (e.g. 'serverades') won't match directly.  For words ending in 's', also
+    # accept candidates whose paradigm can produce the de-passivised form
+    # (e.g. 'serverade'), which IS in the table.
+    active_form = word_form[:-1] if word_form.endswith("s") and len(word_form) > 2 else None
+
+    def _accept(c: dict) -> bool:
+        if not c.get("inflections"):
+            return True
+        if _form_role(c, word_form) is not None:
+            return True
+        if active_form and _form_role(c, active_form) is not None:
+            return True
+        return False
+
+    kept    = [c for c in candidates if _accept(c)]
     removed = len(candidates) - len(kept)
     if removed:
         _log(f"form-filter: removed {removed} whose paradigm cannot produce {word_form!r}")
