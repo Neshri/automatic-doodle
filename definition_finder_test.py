@@ -150,8 +150,9 @@ def _check(result: dict | None, case: dict) -> list[str]:
 
     return failures
 
-
+import time
 def run_tests() -> None:
+    t = time.perf_counter()
     passed = 0
     failed = 0
 
@@ -193,6 +194,7 @@ def run_tests() -> None:
     print("\n" + "=" * 70)
     print(f"Results: {passed}/{passed + failed} passed")
     print("=" * 70)
+    print(f"Total execution time: {time.perf_counter() - t:.4f} seconds")
 
 
 if __name__ == "__main__":

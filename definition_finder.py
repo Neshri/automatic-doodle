@@ -21,9 +21,10 @@ nlp = spacy.load("sv_core_news_lg")
 
 KARP_API    = "https://spraakbanken4.it.gu.se/karp/v7/query/lexin"
 OLLAMA_API  = "http://localhost:11434/api/embed"
-EMBED_MODEL = "bge-m3"
+EMBED_MODEL = "nomic-embed-text-v2-moe"
+LLM_MODEL = "gemma4:e4b"
 
-POS_BONUS: float = 1.4
+POS_BONUS: float = 1.2
 
 _POS_MAP: dict[str, list[str]] = {
     "NOUN":  ["nn"],
@@ -283,7 +284,7 @@ def _embedding_scores(
 
     _log(f"embedding query: {query}")
 
-    all_texts = [query] + [c["definition"] for c in candidates]
+    all_texts = [query] + [f"{target_token.text} ({c['baseform']}): {c['definition']}" for c in candidates]
 
     embeds    = _get_embedding(all_texts)
     q_vec     = embeds[0]
@@ -395,7 +396,7 @@ def find_definition(string: str, word: str, char_index: int) -> dict | None:
     for i, (c, s) in enumerate(zip(candidates, scores)):
         mark = " ← WINNER" if i == best else ""
         preferred_mark = " ★" if c["id"] in pos_preferred else ""
-        _log(f"  emb {s:+.4f}  {c['id']}{preferred_mark}  {c['definition']!r}{mark}")
+        _log(f"  emb {s:+.4f}  {c['id']}{preferred_mark}  '{token.text} ({c['baseform']}): {c['definition']!r}'{mark}")
 
     c = candidates[best]
     _log(f"→ embedding winner: {c['id']}  score={scores[best]:.4f}")
