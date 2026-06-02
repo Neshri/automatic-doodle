@@ -117,6 +117,14 @@ TEST_CASES = [
     "word": "Rätten",
     "char_index": 0,
     "expect_in_def": "mat", 
+    },
+    {
+        "name": "rabatten — trädgård (bestämd sg)",
+        "string":    "Trädgårdsmästaren rensade rabatten.",
+        "word":        "rabatten",
+        "char_index":  26,
+        "expect_id_prefix":  "lexin--rabatt..1",
+        "expect_in_def":     "blomsterland",
     }
 ]
 
