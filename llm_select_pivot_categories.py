@@ -134,18 +134,58 @@ def extract_json(text):
 
 
 def call_ollama(prompt, model, temperature, think):
+    """
+    Streams the response and prints tokens live as they arrive — thinking
+    tokens first (if any), then content tokens — so a genuine hang is
+    visibly distinguishable from slow-but-working generation. Returns the
+    full (content, thinking) strings once the stream completes.
+    """
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "stream": False,
+        "stream": True,
         "think": think,
         "options": {"temperature": temperature},
     }
-    r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=300)
+    r = requests.post(OLLAMA_CHAT_URL, json=payload, stream=True, timeout=120)
     r.raise_for_status()
-    data = r.json()
-    message = data.get("message", {})
-    return message.get("content", ""), message.get("thinking", "")
+
+    full_thinking = []
+    full_content = []
+    printed_thinking_header = False
+    printed_content_header = False
+
+    for line in r.iter_lines(decode_unicode=True):
+        if not line:
+            continue
+        try:
+            chunk = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        message = chunk.get("message", {})
+        thinking_piece = message.get("thinking")
+        content_piece = message.get("content")
+
+        if thinking_piece:
+            if not printed_thinking_header:
+                print("\n--- THINKING (live) ---")
+                printed_thinking_header = True
+            print(thinking_piece, end="", flush=True)
+            full_thinking.append(thinking_piece)
+
+        if content_piece:
+            if not printed_content_header:
+                print("\n--- ANSWER (live) ---")
+                printed_content_header = True
+            print(content_piece, end="", flush=True)
+            full_content.append(content_piece)
+
+        if chunk.get("done"):
+            print()
+            break
+
+    return "".join(full_content), "".join(full_thinking)
 
 
 def main():
