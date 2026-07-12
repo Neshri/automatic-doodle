@@ -103,7 +103,7 @@ som visas här — översätt INTE fältnamnen, bara innehållet):
     return "\n".join(lines)
 
 
-def call_ollama(prompt, model, temperature, think=True):
+def call_ollama(prompt, model, temperature, think):
     payload = {
         "model": model,
         "prompt": prompt,
@@ -112,7 +112,7 @@ def call_ollama(prompt, model, temperature, think=True):
         "think": think,
         "options": {"temperature": temperature},
     }
-    r = requests.post(OLLAMA_GENERATE_URL, json=payload, timeout=180)
+    r = requests.post(OLLAMA_GENERATE_URL, json=payload, timeout=300)
     r.raise_for_status()
     data = r.json()
     return data.get("response", ""), data.get("thinking", "")
@@ -126,10 +126,12 @@ def main():
     ap.add_argument("--temperature", type=float, default=0.2,
                      help="Lower = more deterministic. Default lowered from Ollama's default "
                           "after seeing garbled output (typo'd IDs, nonsense tokens) at default temp.")
-    ap.add_argument("--no-think", action="store_true",
-                     help="Disable reasoning/thinking trace in Ollama (default is enabled)")
+    ap.add_argument("--think", action=argparse.BooleanOptionalAction, default=True,
+                     help="Enable Ollama's extended-thinking mode if the model supports it (default on). "
+                          "Use --no-think to disable.")
     ap.add_argument("--show-prompt", action="store_true", help="Print the full prompt sent to the LLM")
     ap.add_argument("--show-raw", action="store_true", help="Always print the raw LLM response, even on successful parse")
+    ap.add_argument("--show-thinking", action="store_true", help="Print the model's thinking trace, if any")
     args = ap.parse_args()
 
     with open(MULTISENSE_FILE, "r", encoding="utf-8") as f:
@@ -171,14 +173,16 @@ def main():
         print(prompt)
         print("=" * 60)
 
-    print(f"\nCalling {args.model} via Ollama (temperature={args.temperature}, think={not args.no_think})...")
-    raw_response, thinking = call_ollama(prompt, args.model, args.temperature, think=not args.no_think)
+    print(f"\nCalling {args.model} via Ollama (temperature={args.temperature}, think={args.think})...")
+    raw_response, thinking = call_ollama(prompt, args.model, args.temperature, args.think)
 
-    if thinking:
+    if args.show_thinking and thinking:
         print("=" * 60)
-        print("THINKING PROCESS:")
-        print(thinking.strip())
+        print("THINKING TRACE:")
+        print(thinking)
         print("=" * 60)
+    elif args.think and not thinking:
+        print("[Note: --think was on, but no thinking trace was returned — model may not support it]")
 
     if args.show_raw:
         print("=" * 60)
