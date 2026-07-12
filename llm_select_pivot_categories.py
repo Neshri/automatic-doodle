@@ -72,6 +72,12 @@ def build_prompt(word, sense_reports, avg_spread):
    your Swedish vocabulary knowledge is good but not infallible, so be conservative
    about suggesting: only do it when the candidate list is clearly inadequate for
    that sense, not as a default preference over listed candidates.
+   WARNING: candidates are ranked by embedding similarity, which sometimes matches on
+   shared TOPIC vocabulary while meaning the OPPOSITE action — e.g. for a sense
+   meaning "to mend/repair a hole," words meaning "to make/cause a hole" can rank
+   highly because they share the word "hole," despite being near-opposite in meaning.
+   Always check that a candidate's actual action/direction matches the sense's
+   definition, not just its topic.
 3. Never pick the same word for two different senses.
 4. If a sense has NO good option (candidates are all duplicates, off-topic, or
    function words, AND you can't confidently suggest a better real Swedish word),
@@ -95,12 +101,13 @@ Respond ONLY with JSON in exactly this shape, no other text:
     return "\n".join(lines)
 
 
-def call_ollama(prompt, model):
+def call_ollama(prompt, model, temperature):
     payload = {
         "model": model,
         "prompt": prompt,
         "format": "json",
         "stream": False,
+        "options": {"temperature": temperature},
     }
     r = requests.post(OLLAMA_GENERATE_URL, json=payload, timeout=180)
     r.raise_for_status()
@@ -113,7 +120,11 @@ def main():
     ap.add_argument("--word", required=True)
     ap.add_argument("--top-k", type=int, default=20)
     ap.add_argument("--model", default="gemma4:31b")
+    ap.add_argument("--temperature", type=float, default=0.2,
+                     help="Lower = more deterministic. Default lowered from Ollama's default "
+                          "after seeing garbled output (typo'd IDs, nonsense tokens) at default temp.")
     ap.add_argument("--show-prompt", action="store_true", help="Print the full prompt sent to the LLM")
+    ap.add_argument("--show-raw", action="store_true", help="Always print the raw LLM response, even on successful parse")
     args = ap.parse_args()
 
     with open(MULTISENSE_FILE, "r", encoding="utf-8") as f:
@@ -155,8 +166,14 @@ def main():
         print(prompt)
         print("=" * 60)
 
-    print(f"\nCalling {args.model} via Ollama...")
-    raw_response = call_ollama(prompt, args.model)
+    print(f"\nCalling {args.model} via Ollama (temperature={args.temperature})...")
+    raw_response = call_ollama(prompt, args.model, args.temperature)
+
+    if args.show_raw:
+        print("=" * 60)
+        print("RAW RESPONSE:")
+        print(raw_response)
+        print("=" * 60)
 
     try:
         result = json.loads(raw_response)
