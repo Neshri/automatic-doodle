@@ -87,7 +87,8 @@ INSTRUKTIONER FÖR UTMATNING:
   Om kandidatlistan är otillräcklig får du föreslå ord ("source": "suggested"), men använd det återhållsamt.
 - Om en betydelse är för lik en annan vald betydelse, eller saknar bra syskonord, placera den i "rejected_senses".
 
-Du får resonera fritt innan du svarar. Avsluta ditt svar med EXAKT ETT JSON-kodblock i detta
+""")
+    lines.append("""Du får resonera fritt innan du svarar. Avsluta ditt svar med EXAKT ETT JSON-kodblock i detta
 format (och inget annat efter det):
 ```json
 {
@@ -97,6 +98,7 @@ format (och inget annat efter det):
         {"word": "...", "source": "candidate"},
         {"word": "...", "source": "suggested"}
      ],
+     "root_verification": "Ord 1 rot: [rot], Ord 2 rot: [rot]. Jag bekräftar att de inte delar stam.",
      "reasoning": "en kort mening"}
   ],
   "rejected_senses": [
