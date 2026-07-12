@@ -58,25 +58,34 @@ def build_prompt(word, sense_reports, avg_spread):
         lines.append("")
 
     lines.append("""TASK:
-1. Choose exactly 4 of the senses above that make the best puzzle — most distinct
-   from each other, each with genuinely usable candidates.
-2. For each chosen sense, pick exactly 2 sibling words FROM ITS CANDIDATE LIST ABOVE
-   ONLY. Do not invent words not listed. Prefer candidates that are clearly real,
-   distinct siblings over ones that are near-duplicates of the pivot or of each other
-   (e.g. a candidate whose own definition IS the pivot's definition almost verbatim
-   is a duplicate, not a sibling — skip it).
-3. Never pick the same candidate word for two different senses.
-4. If a sense has NO good candidates (all are duplicates, off-topic, or grammatical
-   function words rather than real content words), do not force a pick — mark that
-   sense as unusable and choose a different sense instead, if one is available.
-5. If fewer than 4 of the available senses have usable candidate pairs, say so plainly
-   instead of forcing a weak selection.
+1. Choose the senses above that make the best puzzle categories — most distinct from
+   each other, each with a genuinely good pair of siblings. Up to 4. Fewer than 4 is
+   fine and expected if not all senses are strong enough — do NOT force a weak 4th
+   pick just to reach the number. A 3-category result you're confident in is better
+   than a 4-category result padded with a bad choice.
+2. For each chosen sense, pick exactly 2 sibling words. PREFER picking from that
+   sense's candidate list above — it's already been vetted for relevance. But if you
+   genuinely believe a word NOT in the list fits the sense better (the list can be
+   thin or off-target), you may propose it instead. Mark every sibling with
+   "source": "candidate" (came from the list) or "source": "suggested" (your own
+   addition, not in the list) so suggested words can be spot-checked separately —
+   your Swedish vocabulary knowledge is good but not infallible, so be conservative
+   about suggesting: only do it when the candidate list is clearly inadequate for
+   that sense, not as a default preference over listed candidates.
+3. Never pick the same word for two different senses.
+4. If a sense has NO good option (candidates are all duplicates, off-topic, or
+   function words, AND you can't confidently suggest a better real Swedish word),
+   mark that sense as unusable rather than forcing a pick.
 
 Respond ONLY with JSON in exactly this shape, no other text:
 {
-  "usable": true or false,
   "categories": [
-    {"sense_id": "...", "definition": "...", "siblings": ["word1", "word2"], "reasoning": "one short sentence"}
+    {"sense_id": "...", "definition": "...",
+     "siblings": [
+        {"word": "...", "source": "candidate"},
+        {"word": "...", "source": "suggested"}
+     ],
+     "reasoning": "one short sentence"}
   ],
   "rejected_senses": [
     {"sense_id": "...", "reason": "one short sentence"}
@@ -157,11 +166,14 @@ def main():
         return
 
     print(f"\n########## LLM selection for '{args.word}' ##########")
-    print(f"Usable: {result.get('usable')}\n")
+    categories = result.get("categories", [])
+    print(f"{len(categories)} usable categor{'y' if len(categories) == 1 else 'ies'} found.\n")
 
-    for cat in result.get("categories", []):
+    for cat in categories:
         print(f"[{cat.get('sense_id')}] {cat.get('definition')}")
-        print(f"  Siblings: {cat.get('siblings')}")
+        for sib in cat.get("siblings", []):
+            tag = "" if sib.get("source") == "candidate" else "  <-- SUGGESTED, not in candidate list, verify"
+            print(f"  {sib.get('word')}{tag}")
         print(f"  Reasoning: {cat.get('reasoning')}\n")
 
     if result.get("rejected_senses"):
