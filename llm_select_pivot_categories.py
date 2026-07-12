@@ -24,6 +24,7 @@ Usage:
 """
 
 import json
+import re
 import argparse
 import requests
 
@@ -82,8 +83,10 @@ UPPGIFT:
 4. Om en betydelse saknar ett bra alternativ, markera den som oanvändbar istället för att tvinga
    fram ett val.
 
-Svara ENDAST med JSON, ingen annan text. Använd EXAKT dessa fältnamn (skrivna på engelska,
-som visas här — översätt INTE fältnamnen, bara innehållet):
+Du får resonera fritt innan du svarar. Avsluta ditt svar med EXAKT ETT JSON-kodblock i detta
+format (och inget annat efter det). Använd EXAKT dessa fältnamn (skrivna på engelska, som visas
+här — översätt INTE fältnamnen, bara innehållet):
+```json
 {
   "categories": [
     {"sense_id": "...", "definition": "...",
@@ -96,7 +99,8 @@ som visas här — översätt INTE fältnamnen, bara innehållet):
   "rejected_senses": [
     {"sense_id": "...", "reason": "en kort mening"}
   ]
-}""")
+}
+```""")
 
     return "\n".join(lines)
 
@@ -104,11 +108,35 @@ som visas här — översätt INTE fältnamnen, bara innehållet):
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 
 
+def extract_json(text):
+    """
+    Pull the JSON object out of a response that may contain reasoning prose
+    before it. Prefers a ```json fenced block (what the prompt asks for);
+    falls back to brace-matching the first balanced {...} in the text if
+    the model didn't fence it properly.
+    """
+    m = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if m:
+        return m.group(1)
+
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
 def call_ollama(prompt, model, temperature, think):
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "format": "json",
         "stream": False,
         "think": think,
         "options": {"temperature": temperature},
@@ -193,9 +221,12 @@ def main():
         print("=" * 60)
 
     try:
-        result = json.loads(raw_response)
+        json_str = extract_json(raw_response)
+        if json_str is None:
+            raise json.JSONDecodeError("no JSON object found in response", raw_response, 0)
+        result = json.loads(json_str)
     except json.JSONDecodeError:
-        print("Model did not return valid JSON. Raw response:")
+        print("Could not find/parse a JSON object in the model's response. Full response:")
         print(raw_response)
         return
 
