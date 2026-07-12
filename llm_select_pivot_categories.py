@@ -37,53 +37,55 @@ OLLAMA_GENERATE_URL = "http://localhost:11434/api/generate"
 
 def build_prompt(word, sense_reports, avg_spread):
     lines = []
-    lines.append(f"Pivot word: \"{word}\" (Swedish)")
-    lines.append(f"It has {len(sense_reports)} senses. A Connections-style puzzle needs exactly 4.")
-    lines.append(f"Overall spread between its senses: avg_pairwise_sim={avg_spread:.3f} "
-                 f"(lower = senses are more distinct from each other, which is good for the puzzle).")
+    lines.append(f"Pivotord: \"{word}\" (svenska)")
+    lines.append(f"Ordet har {len(sense_reports)} betydelser. Ett pussel i Connections-stil behöver högst 4.")
+    lines.append(f"Genomsnittligt avstånd mellan betydelserna: avg_pairwise_sim={avg_spread:.3f} "
+                 f"(lägre = betydelserna är mer distinkta från varandra, vilket är bra för pusslet).")
     lines.append("")
-    lines.append("For each sense below: its definition, and its top scored candidate sibling words "
-                  "(already filtered to same-headword-excluded, ranked by embedding similarity to the "
-                  "sense's own definition — NOT guaranteed to be good, just ranked).")
+    lines.append("För varje betydelse nedan: dess definition, samt dess topprankade kandidatord "
+                  "(redan filtrerade så att ordets egna andra betydelser är borttagna, rankade efter "
+                  "embedding-likhet med betydelsens egen definition — INTE en garanti för att de är bra, bara rankade).")
     lines.append("")
 
     for i, sr in enumerate(sense_reports, 1):
-        lines.append(f"--- SENSE {i}: {sr['id']} [{sr['pos']}] ---")
+        lines.append(f"--- BETYDELSE {i}: {sr['id']} [{sr['pos']}] ---")
         lines.append(f"Definition: {sr['definition']}")
         if sr["flags"]:
-            lines.append(f"Automated flags: {', '.join(sr['flags'])}")
-        lines.append("Candidates (score, word, POS, definition):")
+            lines.append(f"Automatiska flaggor: {', '.join(sr['flags'])}")
+        lines.append("Kandidater (poäng, ord, ordklass, definition):")
         for c in sr["candidates"]:
             lines.append(f"  {c['score']:.3f}  {c['baseform']}  [{c['pos']}]  {c['definition']}")
         lines.append("")
 
-    lines.append("""TASK:
-1. Choose the senses above that make the best puzzle categories — most distinct from
-   each other, each with a genuinely good pair of siblings. Up to 4. Fewer than 4 is
-   fine and expected if not all senses are strong enough — do NOT force a weak 4th
-   pick just to reach the number. A 3-category result you're confident in is better
-   than a 4-category result padded with a bad choice.
-2. For each chosen sense, pick exactly 2 sibling words. PREFER picking from that
-   sense's candidate list above — it's already been vetted for relevance. But if you
-   genuinely believe a word NOT in the list fits the sense better (the list can be
-   thin or off-target), you may propose it instead. Mark every sibling with
-   "source": "candidate" (came from the list) or "source": "suggested" (your own
-   addition, not in the list) so suggested words can be spot-checked separately —
-   your Swedish vocabulary knowledge is good but not infallible, so be conservative
-   about suggesting: only do it when the candidate list is clearly inadequate for
-   that sense, not as a default preference over listed candidates.
-   WARNING: candidates are ranked by embedding similarity, which sometimes matches on
-   shared TOPIC vocabulary while meaning the OPPOSITE action — e.g. for a sense
-   meaning "to mend/repair a hole," words meaning "to make/cause a hole" can rank
-   highly because they share the word "hole," despite being near-opposite in meaning.
-   Always check that a candidate's actual action/direction matches the sense's
-   definition, not just its topic.
-3. Never pick the same word for two different senses.
-4. If a sense has NO good option (candidates are all duplicates, off-topic, or
-   function words, AND you can't confidently suggest a better real Swedish word),
-   mark that sense as unusable rather than forcing a pick.
+    lines.append("""EXEMPEL på korrekt resonemang (fiktivt exempel, inte relaterat till ordet ovan):
 
-Respond ONLY with JSON in exactly this shape, no other text:
+Betydelse: "får något att sluta brinna" (t.ex. en eld)
+Kandidater: 0.800 släcka | 0.750 tända | 0.600 kväva | 0.550 elda
+
+Korrekt val: "släcka" och "kväva" — båda betyder faktiskt att få en eld att sluta brinna.
+"tända" är FEL trots hög poäng (0.750) — det betyder motsatsen (att starta en eld), inte att
+släcka den. Det rankades högt bara för att det delar ämnet "eld" med definitionen, inte för att
+det betyder samma sak. "elda" har samma problem. Detta mönster — hög poäng men fel riktning
+eftersom ämnesordet delas men handlingen är motsatt — förekommer ofta. Kontrollera alltid att
+ett kandidatords faktiska handling matchar betydelsens definition, inte bara att de delar ämne.
+
+UPPGIFT:
+1. Välj de betydelser ovan som ger de bästa pusselkategorierna — mest distinkta från varandra,
+   var och en med ett genuint bra par av syskonord. Max 4. Färre än 4 är helt okej och förväntat
+   om inte alla betydelser är tillräckligt starka — tvinga INTE fram ett svagt val bara för att
+   nå antalet 4. Tre kategorier du är säker på är bättre än fyra där en är dåligt vald.
+2. För varje vald betydelse: välj EXAKT 2 syskonord, varken fler eller färre. Föredra att välja
+   från kandidatlistan — den är redan granskad för relevans. Men om du är övertygad om att ett
+   ord som INTE finns i listan passar bättre (listan kan vara tunn eller missvisande), får du
+   föreslå det istället. Märk varje syskonord med "source": "candidate" (från listan) eller
+   "source": "suggested" (ditt eget förslag) så att föreslagna ord kan kontrolleras separat —
+   var återhållsam med förslag, använd det bara när listan är tydligt otillräcklig.
+3. Välj aldrig samma ord för två olika betydelser.
+4. Om en betydelse saknar ett bra alternativ, markera den som oanvändbar istället för att tvinga
+   fram ett val.
+
+Svara ENDAST med JSON, ingen annan text. Använd EXAKT dessa fältnamn (skrivna på engelska,
+som visas här — översätt INTE fältnamnen, bara innehållet):
 {
   "categories": [
     {"sense_id": "...", "definition": "...",
@@ -91,10 +93,10 @@ Respond ONLY with JSON in exactly this shape, no other text:
         {"word": "...", "source": "candidate"},
         {"word": "...", "source": "suggested"}
      ],
-     "reasoning": "one short sentence"}
+     "reasoning": "en kort mening"}
   ],
   "rejected_senses": [
-    {"sense_id": "...", "reason": "one short sentence"}
+    {"sense_id": "...", "reason": "en kort mening"}
   ]
 }""")
 
