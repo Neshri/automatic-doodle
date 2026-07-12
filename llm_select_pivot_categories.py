@@ -32,8 +32,6 @@ from score_pivots import (
     MULTISENSE_FILE,
 )
 
-OLLAMA_GENERATE_URL = "http://localhost:11434/api/generate"
-
 
 def build_prompt(word, sense_reports, avg_spread):
     lines = []
@@ -103,19 +101,23 @@ som visas här — översätt INTE fältnamnen, bara innehållet):
     return "\n".join(lines)
 
 
+OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
+
+
 def call_ollama(prompt, model, temperature, think):
     payload = {
         "model": model,
-        "prompt": prompt,
+        "messages": [{"role": "user", "content": prompt}],
         "format": "json",
         "stream": False,
         "think": think,
         "options": {"temperature": temperature},
     }
-    r = requests.post(OLLAMA_GENERATE_URL, json=payload, timeout=300)
+    r = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=300)
     r.raise_for_status()
     data = r.json()
-    return data.get("response", ""), data.get("thinking", "")
+    message = data.get("message", {})
+    return message.get("content", ""), message.get("thinking", "")
 
 
 def main():
