@@ -1,5 +1,6 @@
 embeddings.jsonl
-
+embeddings.npy
+embeddings_meta.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
