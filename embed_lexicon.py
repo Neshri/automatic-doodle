@@ -41,7 +41,7 @@ OLLAMA_URL = "http://localhost:11434/api/embed"
 MODEL = "nomic-embed-text-v2-moe"
 OLLAMA_PREFIX = ""  # e.g. "search_document: " — set to match definition_finder.py if it uses one
 BATCH_SIZE = 32
-NUM_GPU = 0  # matches definition_finder.py's setting; flip to something >0 if nothing else is holding VRAM right now
+NUM_GPU = 2  # matches definition_finder.py's setting; flip to something >0 if nothing else is holding VRAM right now
 
 def clean_for_embedding(definition: str) -> str:
     """Strip Lexin's own cross-reference shorthand — a trailing/inline

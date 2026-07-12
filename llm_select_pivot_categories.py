@@ -103,7 +103,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--word", required=True)
     ap.add_argument("--top-k", type=int, default=20)
-    ap.add_argument("--model", default="gemma4:e4b")
+    ap.add_argument("--model", default="gemma4:31b")
     ap.add_argument("--show-prompt", action="store_true", help="Print the full prompt sent to the LLM")
     args = ap.parse_args()
 
