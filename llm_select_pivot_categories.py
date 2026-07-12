@@ -56,36 +56,39 @@ def build_prompt(word, sense_reports, avg_spread):
             lines.append(f"  {c['score']:.3f}  {c['baseform']}  [{c['pos']}]  {c['definition']}")
         lines.append("")
 
-    lines.append("""EXEMPEL på korrekt resonemang (fiktivt exempel, inte relaterat till ordet ovan):
+    lines.append("""UPPGIFT OCH LINGVISTISKA REGLER FOR PUSSELKVALITET:
 
-Betydelse: "får något att sluta brinna" (t.ex. en eld)
-Kandidater: 0.800 släcka | 0.750 tända | 0.600 kväva | 0.550 elda
+1. SEMANTISK SEPARATION (KATEGORIER):
+   Kategorierna måste tillhöra helt olika domäner eller beskriva helt olika koncept.
+   - Välj ALDRIG två betydelser som bara skiljer sig åt i grammatisk roll (t.ex. transitivt vs. 
+     intransitivt), gradskillnad (mild vs. extrem) eller stilnivå för samma grundläggande handling. 
+   - Om två betydelser delar samma kärnhandling eller domän, välj endast den starkaste och 
+     förkasta den andra i "rejected_senses".
 
-Korrekt val: "släcka" och "kväva" — båda betyder faktiskt att få en eld att sluta brinna.
-"tända" är FEL trots hög poäng (0.750) — det betyder motsatsen (att starta en eld), inte att
-släcka den. Det rankades högt bara för att det delar ämnet "eld" med definitionen, inte för att
-det betyder samma sak. "elda" har samma problem. Detta mönster — hög poäng men fel riktning
-eftersom ämnesordet delas men handlingen är motsatt — förekommer ofta. Kontrollera alltid att
-ett kandidatords faktiska handling matchar betydelsens definition, inte bara att de delar ämne.
+2. MORFOLOGISKT OBEROENDE (SYSKONORD):
+   Syskonorden inom en kategori måste vara ortografiskt och etymologiskt oberoende.
+   - Orden får INTE dela samma ordstam, ordrot eller vara avledningar/sammensättningar av varandra 
+     (t.ex. ett grundord och dess prefix/avledning är inte giltiga syskonord i ett pussel).
+   - Syskonorden måste också matcha pivotordets ordklass i den aktuella betydelsen (använd inte 
+     substantiv som syskon till ett verbpivot).
 
-UPPGIFT:
-1. Välj de betydelser ovan som ger de bästa pusselkategorierna — mest distinkta från varandra,
-   var och en med ett genuint bra par av syskonord. Max 4. Färre än 4 är helt okej och förväntat
-   om inte alla betydelser är tillräckligt starka — tvinga INTE fram ett svagt val bara för att
-   nå antalet 4. Tre kategorier du är säker på är bättre än fyra där en är dåligt vald.
-2. För varje vald betydelse: välj EXAKT 2 syskonord, varken fler eller färre. Föredra att välja
-   från kandidatlistan — den är redan granskad för relevans. Men om du är övertygad om att ett
-   ord som INTE finns i listan passar bättre (listan kan vara tunn eller missvisande), får du
-   föreslå det istället. Märk varje syskonord med "source": "candidate" (från listan) eller
-   "source": "suggested" (ditt eget förslag) så att föreslagna ord kan kontrolleras separat —
-   var återhållsam med förslag, använd det bara när listan är tydligt otillräcklig.
-3. Välj aldrig samma ord för två olika betydelser.
-4. Om en betydelse saknar ett bra alternativ, markera den som oanvändbar istället för att tvinga
-   fram ett val.
+3. RIKTNING OCH ANTONYMER:
+   Embedding-likhet rankar ofta motsatser högt för att de delar ämne. Kontrollera alltid att 
+   kandidatordets faktiska handling rör sig i SAMMA riktning som betydelsens definition (inte motsatt).
+
+4. KVALITET FRAMFÖR KVANTITET:
+   Tvinga ALDRIG fram 4 kategorier. Ett pussel med 2 eller 3 klockrena, helt ortogonala kategorier 
+   är oändligt mycket bättre än ett pussel med 4 kategorier där någon är sökt, för nära en annan, 
+   eller kräver svaga kandidater.
+
+INSTRUKTIONER FÖR UTMATNING:
+- Välj max 4 betydelser (färre är helt okej).
+- För varje vald betydelse: välj EXAKT 2 syskonord. Föredra kandidatlistan ("source": "candidate"). 
+  Om kandidatlistan är otillräcklig får du föreslå ord ("source": "suggested"), men använd det återhållsamt.
+- Om en betydelse är för lik en annan vald betydelse, eller saknar bra syskonord, placera den i "rejected_senses".
 
 Du får resonera fritt innan du svarar. Avsluta ditt svar med EXAKT ETT JSON-kodblock i detta
-format (och inget annat efter det). Använd EXAKT dessa fältnamn (skrivna på engelska, som visas
-här — översätt INTE fältnamnen, bara innehållet):
+format (och inget annat efter det):
 ```json
 {
   "categories": [
@@ -103,7 +106,6 @@ här — översätt INTE fältnamnen, bara innehållet):
 ```""")
 
     return "\n".join(lines)
-
 
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 
