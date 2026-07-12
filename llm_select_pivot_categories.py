@@ -103,18 +103,19 @@ som visas här — översätt INTE fältnamnen, bara innehållet):
     return "\n".join(lines)
 
 
-def call_ollama(prompt, model, temperature):
+def call_ollama(prompt, model, temperature, think=True):
     payload = {
         "model": model,
         "prompt": prompt,
         "format": "json",
         "stream": False,
+        "think": think,
         "options": {"temperature": temperature},
     }
     r = requests.post(OLLAMA_GENERATE_URL, json=payload, timeout=180)
     r.raise_for_status()
     data = r.json()
-    return data.get("response", "")
+    return data.get("response", ""), data.get("thinking", "")
 
 
 def main():
@@ -125,6 +126,8 @@ def main():
     ap.add_argument("--temperature", type=float, default=0.2,
                      help="Lower = more deterministic. Default lowered from Ollama's default "
                           "after seeing garbled output (typo'd IDs, nonsense tokens) at default temp.")
+    ap.add_argument("--no-think", action="store_true",
+                     help="Disable reasoning/thinking trace in Ollama (default is enabled)")
     ap.add_argument("--show-prompt", action="store_true", help="Print the full prompt sent to the LLM")
     ap.add_argument("--show-raw", action="store_true", help="Always print the raw LLM response, even on successful parse")
     args = ap.parse_args()
@@ -168,8 +171,14 @@ def main():
         print(prompt)
         print("=" * 60)
 
-    print(f"\nCalling {args.model} via Ollama (temperature={args.temperature})...")
-    raw_response = call_ollama(prompt, args.model, args.temperature)
+    print(f"\nCalling {args.model} via Ollama (temperature={args.temperature}, think={not args.no_think})...")
+    raw_response, thinking = call_ollama(prompt, args.model, args.temperature, think=not args.no_think)
+
+    if thinking:
+        print("=" * 60)
+        print("THINKING PROCESS:")
+        print(thinking.strip())
+        print("=" * 60)
 
     if args.show_raw:
         print("=" * 60)
