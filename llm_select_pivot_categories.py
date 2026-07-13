@@ -21,6 +21,8 @@ rather than duplicating it.
 Usage:
   python llm_select_pivot_categories.py --word stoppar
   python llm_select_pivot_categories.py --word stoppar --top-k 20 --model gemma4:31b
+  python llm_select_pivot_categories.py --all
+  python llm_select_pivot_categories.py --all --output my_results.json --model gemma4:31b
 """
 
 import json
@@ -192,9 +194,95 @@ def call_ollama(prompt, model, temperature, think):
     return "".join(full_content), "".join(full_thinking)
 
 
+def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
+    """
+    Build prompt, call LLM, parse result for a single pivot word.
+    Returns (result_dict, raw_response, thinking) or raises on hard failure.
+    result_dict is None if the word was skipped (too few senses) or parse failed.
+    """
+    sense_reports = []
+    for sense in multisense[word]:
+        sid = sense["id"]
+        if sid not in id_to_index:
+            continue
+        pivot_entry = lexicon.get(sid, {})
+        pivot_pos = pivot_entry.get("part_of_speech")
+        pivot_baseform = pivot_entry.get("baseform", word)
+        candidates = get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, args.top_k)
+        sense_reports.append({
+            "id": sid, "pos": pivot_pos, "definition": sense["definition"],
+            "flags": [], "candidates": candidates,
+        })
+
+    if len(sense_reports) < 4:
+        print(f"  Only {len(sense_reports)} senses embedded for '{word}' — need at least 4. Skipping.")
+        return None, None, None
+
+    all_sense_ids = [sr["id"] for sr in sense_reports]
+    avg_spread, _, _ = sense_spread(all_sense_ids, matrix, id_to_index, close_threshold=0.5)
+
+    prompt = build_prompt(word, sense_reports, avg_spread)
+
+    if args.show_prompt:
+        print("=" * 60)
+        print(prompt)
+        print("=" * 60)
+
+    print(f"  Calling {args.model} (temperature={args.temperature}, think={args.think})...")
+    raw_response, thinking = call_ollama(prompt, args.model, args.temperature, args.think)
+
+    if args.show_thinking and thinking:
+        print("=" * 60)
+        print("THINKING TRACE:")
+        print(thinking)
+        print("=" * 60)
+    elif args.think and not thinking:
+        print("  [Note: --think was on, but no thinking trace returned — model may not support it]")
+
+    if args.show_raw:
+        print("=" * 60)
+        print("RAW RESPONSE:")
+        print(raw_response)
+        print("=" * 60)
+
+    try:
+        json_str = extract_json(raw_response)
+        if json_str is None:
+            raise json.JSONDecodeError("no JSON object found in response", raw_response, 0)
+        result = json.loads(json_str)
+    except json.JSONDecodeError:
+        print(f"  Could not parse JSON from model response for '{word}'.")
+        return None, raw_response, thinking
+
+    return result, raw_response, thinking
+
+
+def print_result(word, result):
+    """Pretty-print a parsed LLM result to stdout."""
+    categories = result.get("categories", [])
+    print(f"\n########## LLM selection for '{word}' ##########")
+    print(f"{len(categories)} usable categor{'y' if len(categories) == 1 else 'ies'} found.\n")
+    for cat in categories:
+        print(f"[{cat.get('sense_id')}] {cat.get('definition')}")
+        for sib in cat.get("siblings", []):
+            tag = "" if sib.get("source") == "candidate" else "  <-- SUGGESTED, not in candidate list, verify"
+            print(f"  {sib.get('word')}{tag}")
+        print(f"  Reasoning: {cat.get('reasoning')}\n")
+    if result.get("rejected_senses"):
+        print("Rejected senses:")
+        for r in result["rejected_senses"]:
+            print(f"  {r.get('sense_id')}: {r.get('reason')}")
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--word", required=True)
+    word_group = ap.add_mutually_exclusive_group(required=True)
+    word_group.add_argument("--word", help="Process a single pivot word")
+    word_group.add_argument("--all", action="store_true",
+                            help="Process every multisense word and save results to --output")
+    ap.add_argument("--output", default="llm_selections.json",
+                    help="Output file for --all mode (default: llm_selections.json). "
+                         "Existing entries are skipped so the run can be resumed.")
     ap.add_argument("--top-k", type=int, default=20)
     ap.add_argument("--model", default="gemma4:31b")
     ap.add_argument("--temperature", type=float, default=0.2,
@@ -211,84 +299,73 @@ def main():
     with open(MULTISENSE_FILE, "r", encoding="utf-8") as f:
         multisense = json.load(f)
 
-    if args.word not in multisense:
-        print(f"'{args.word}' not in {MULTISENSE_FILE}.")
-        return
-
     matrix, meta = load_embeddings()
     lexicon = load_lexicon()
     id_to_index = {m["id"]: i for i, m in enumerate(meta)}
 
-    sense_reports = []
-    for sense in multisense[args.word]:
-        sid = sense["id"]
-        if sid not in id_to_index:
+    # ------------------------------------------------------------------ #
+    # Single-word mode                                                     #
+    # ------------------------------------------------------------------ #
+    if args.word:
+        if args.word not in multisense:
+            print(f"'{args.word}' not in {MULTISENSE_FILE}.")
+            return
+
+        result, raw_response, thinking = process_word(
+            args.word, multisense, matrix, meta, id_to_index, lexicon, args
+        )
+        if result is not None:
+            print_result(args.word, result)
+        return
+
+    # ------------------------------------------------------------------ #
+    # Batch mode (--all)                                                  #
+    # ------------------------------------------------------------------ #
+    # Load existing results so we can resume interrupted runs.
+    if args.output and __import__("os").path.exists(args.output):
+        with open(args.output, "r", encoding="utf-8") as f:
+            saved = json.load(f)
+    else:
+        saved = {}
+
+    all_words = sorted(multisense.keys())
+    total = len(all_words)
+    skipped_already_done = sum(1 for w in all_words if w in saved)
+    print(f"Batch mode: {total} words total, {skipped_already_done} already done, "
+          f"{total - skipped_already_done} remaining.")
+    print(f"Saving results to: {args.output}\n")
+
+    for i, word in enumerate(all_words, 1):
+        if word in saved:
+            print(f"[{i}/{total}] '{word}' — already done, skipping.")
             continue
-        pivot_entry = lexicon.get(sid, {})
-        pivot_pos = pivot_entry.get("part_of_speech")
-        pivot_baseform = pivot_entry.get("baseform", args.word)
-        candidates = get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, args.top_k)
-        sense_reports.append({
-            "id": sid, "pos": pivot_pos, "definition": sense["definition"],
-            "flags": [], "candidates": candidates,
-        })
 
-    if len(sense_reports) < 4:
-        print(f"Only {len(sense_reports)} senses embedded for '{args.word}' — need at least 4. Aborting.")
-        return
+        print(f"[{i}/{total}] Processing '{word}'...")
+        try:
+            result, raw_response, thinking = process_word(
+                word, multisense, matrix, meta, id_to_index, lexicon, args
+            )
+        except Exception as exc:
+            print(f"  ERROR processing '{word}': {exc}")
+            # Record the error so we don't retry the same word on resume
+            # (remove this entry manually if you want to retry it).
+            saved[word] = {"error": str(exc)}
+        else:
+            if result is not None:
+                print_result(word, result)
+                saved[word] = result
+            else:
+                # parse failure or too-few-senses — record a sentinel
+                saved[word] = {"skipped": True}
 
-    all_sense_ids = [sr["id"] for sr in sense_reports]
-    avg_spread, _, _ = sense_spread(all_sense_ids, matrix, id_to_index, close_threshold=0.5)
+        # Write after every candidate so progress is never lost.
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(saved, f, ensure_ascii=False, indent=2)
+        print(f"  → Saved to {args.output}")
 
-    prompt = build_prompt(args.word, sense_reports, avg_spread)
-
-    if args.show_prompt:
-        print("=" * 60)
-        print(prompt)
-        print("=" * 60)
-
-    print(f"\nCalling {args.model} via Ollama (temperature={args.temperature}, think={args.think})...")
-    raw_response, thinking = call_ollama(prompt, args.model, args.temperature, args.think)
-
-    if args.show_thinking and thinking:
-        print("=" * 60)
-        print("THINKING TRACE:")
-        print(thinking)
-        print("=" * 60)
-    elif args.think and not thinking:
-        print("[Note: --think was on, but no thinking trace was returned — model may not support it]")
-
-    if args.show_raw:
-        print("=" * 60)
-        print("RAW RESPONSE:")
-        print(raw_response)
-        print("=" * 60)
-
-    try:
-        json_str = extract_json(raw_response)
-        if json_str is None:
-            raise json.JSONDecodeError("no JSON object found in response", raw_response, 0)
-        result = json.loads(json_str)
-    except json.JSONDecodeError:
-        print("Could not find/parse a JSON object in the model's response. Full response:")
-        print(raw_response)
-        return
-
-    print(f"\n########## LLM selection for '{args.word}' ##########")
-    categories = result.get("categories", [])
-    print(f"{len(categories)} usable categor{'y' if len(categories) == 1 else 'ies'} found.\n")
-
-    for cat in categories:
-        print(f"[{cat.get('sense_id')}] {cat.get('definition')}")
-        for sib in cat.get("siblings", []):
-            tag = "" if sib.get("source") == "candidate" else "  <-- SUGGESTED, not in candidate list, verify"
-            print(f"  {sib.get('word')}{tag}")
-        print(f"  Reasoning: {cat.get('reasoning')}\n")
-
-    if result.get("rejected_senses"):
-        print("Rejected senses:")
-        for r in result["rejected_senses"]:
-            print(f"  {r.get('sense_id')}: {r.get('reason')}")
+    done = sum(1 for v in saved.values() if "categories" in v)
+    print(f"\nDone. {done}/{total} words produced usable categories.")
+    print(f"Results written to {args.output}")
 
 
 if __name__ == "__main__":
