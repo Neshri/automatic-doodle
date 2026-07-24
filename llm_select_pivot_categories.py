@@ -38,23 +38,31 @@ from score_pivots import (
 from generate_multisense_json import get_wiktionary_senses, WIKTIONARY_USER_AGENT
 
 
-def build_word_inventory(lexicon: dict) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
+def build_word_inventory(
+    lexicon: dict,
+) -> tuple[dict[str, dict[str, str]], dict[str, str], dict[str, dict[str, str]]]:
     """
-    Returns (inventory_by_pos, all_words_map):
+    Returns (inventory_by_pos, all_words_map, definitions_by_pos):
     - inventory_by_pos: dict mapping POS tag ('nn', 'vb', 'av', etc.) to a dict of {baseform_lower: baseform}
     - all_words_map: dict of {baseform_lower: baseform} across all POS
+    - definitions_by_pos: dict mapping POS tag to {baseform_lower: definition}, used to backfill
+      a definition onto any sibling resolved via the lexicon rather than the candidate list
+      (candidates already carry their own definition from get_candidates()).
     """
     inventory_by_pos = {}
     all_words_map = {}
+    definitions_by_pos = {}
     for entry in lexicon.values():
         bf = entry.get("baseform")
         pos = entry.get("part_of_speech")
+        definition = entry.get("definition", "")
         if bf:
             bf_lower = bf.strip().lower()
             all_words_map[bf_lower] = bf
             if pos:
                 inventory_by_pos.setdefault(pos, {})[bf_lower] = bf
-    return inventory_by_pos, all_words_map
+                definitions_by_pos.setdefault(pos, {}).setdefault(bf_lower, definition)
+    return inventory_by_pos, all_words_map, definitions_by_pos
 
 
 def verify_and_correct_sibling(
@@ -63,6 +71,7 @@ def verify_and_correct_sibling(
     target_pos: str | None,
     inventory_by_pos: dict[str, dict[str, str]],
     all_words_map: dict[str, str],
+    definitions_by_pos: dict[str, dict[str, str]],
     session: requests.Session,
 ) -> dict:
     """
@@ -75,6 +84,11 @@ def verify_and_correct_sibling(
     3. Suggested words are checked against the lexicon and Wiktionary ONLY for the target POS.
        Fuzzy matching is strictly POS-restricted, preventing cross-POS mutations (e.g. verb 'förtrösta' -> noun 'förtröstan').
     4. Multi-word phrases with particles ('lita på') are normalized to core baseform ('lita').
+    5. Every word that resolves successfully also gets sib['definition'] backfilled --
+       from the candidate list, the lexicon, or Wiktionary, whichever path resolved it --
+       so the puzzle schema always carries a definition for every word it uses. A word
+       that resolves via none of these paths gets 'correction_warning' set instead, and
+       carries no definition -- filter_valid_categories() treats that as unusable.
     """
     word = sib.get("word", "").strip()
     if not word:
@@ -82,10 +96,12 @@ def verify_and_correct_sibling(
     source = sib.get("source", "candidate")
 
     cand_map = {c["baseform"].lower(): c["baseform"] for c in candidate_list if c.get("baseform")}
+    cand_def_map = {c["baseform"].lower(): c.get("definition", "") for c in candidate_list if c.get("baseform")}
 
     if source == "candidate":
         if word.lower() in cand_map:
             sib["word"] = cand_map[word.lower()]
+            sib["definition"] = cand_def_map.get(word.lower(), "")
             return sib
 
         # Fuzzy match against the sense's actual candidate list
@@ -94,6 +110,7 @@ def verify_and_correct_sibling(
             corrected = cand_map[cand_matches[0]]
             print(f"  [spell-fix candidate] '{word}' -> '{corrected}'")
             sib["word"] = corrected
+            sib["definition"] = cand_def_map.get(cand_matches[0], "")
             sib["corrected_from"] = word
             return sib
 
@@ -106,14 +123,17 @@ def verify_and_correct_sibling(
 
     if core_word.lower() in cand_map:
         sib["word"] = cand_map[core_word.lower()]
+        sib["definition"] = cand_def_map.get(core_word.lower(), "")
         sib["source"] = "candidate"
         return sib
 
     pos_inv = inventory_by_pos.get(target_pos, {}) if target_pos else all_words_map
+    pos_def_map = definitions_by_pos.get(target_pos, {}) if target_pos else {}
 
     # 1. Exact match in lexicon for target POS
     if core_word.lower() in pos_inv:
         sib["word"] = pos_inv[core_word.lower()]
+        sib["definition"] = pos_def_map.get(core_word.lower(), "")
         return sib
 
     # 2. Check Wiktionary for target POS
@@ -121,6 +141,7 @@ def verify_and_correct_sibling(
     matching_wikt = [s for s in wikt_senses if s.get("part_of_speech") == target_pos] if target_pos else wikt_senses
     if matching_wikt:
         sib["word"] = core_word
+        sib["definition"] = matching_wikt[0]["definition"]
         sib["wiktionary_definition"] = matching_wikt[0]["definition"]
         return sib
 
@@ -131,10 +152,11 @@ def verify_and_correct_sibling(
         corrected = pos_inv[matches[0]]
         print(f"  [spell-fix suggested POS={target_pos}] '{word}' -> '{corrected}'")
         sib["word"] = corrected
+        sib["definition"] = pos_def_map.get(matches[0], "")
         sib["corrected_from"] = word
         return sib
 
-    # Word not found for target POS -- leave word as-is and flag warning
+    # Word not found for target POS -- leave word as-is, no definition, flag warning
     sib["correction_warning"] = f"not found in lexicon for POS '{target_pos}'"
     return sib
 
@@ -423,7 +445,7 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
         return None, raw_response, thinking
 
     # ---- Spell-correct and validate sibling words (POS-aware) ----------
-    inventory_by_pos, all_words_map = args._word_inventory_data  # injected into args in main()
+    inventory_by_pos, all_words_map, definitions_by_pos = args._word_inventory_data  # injected into args in main()
     session_for_wikt = requests.Session()
     session_for_wikt.headers.update({"User-Agent": WIKTIONARY_USER_AGENT})
     sense_map = {sr["id"]: sr for sr in sense_reports}
@@ -436,7 +458,8 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
 
         for sib in cat.get("siblings", []):
             verify_and_correct_sibling(
-                sib, candidate_list, target_pos, inventory_by_pos, all_words_map, session_for_wikt
+                sib, candidate_list, target_pos, inventory_by_pos, all_words_map,
+                definitions_by_pos, session_for_wikt,
             )
     # --------------------------------------------------------------------
 
@@ -453,17 +476,29 @@ def filter_valid_categories(categories, used_words):
     response, or by an earlier puzzle for this pivot (used_words). A
     colliding category is dropped whole rather than salvaged down to one
     sibling, since a category needs exactly two.
+
+    Also drops any category where a sibling never resolved cleanly
+    (correction_warning set by verify_and_correct_sibling -- the word
+    couldn't be confirmed to exist for the target POS anywhere) or ended
+    up without a definition. Quality gate: the puzzle schema requires a
+    definition for every word it uses, so an unverified/undefined sibling
+    disqualifies the whole category rather than shipping a hole in it.
     """
     claimed = set(used_words)
     valid = []
     for cat in categories:
-        words = [s.get("word", "").strip().lower() for s in cat.get("siblings", []) if s.get("word")]
+        siblings = cat.get("siblings", [])
+        words = [s.get("word", "").strip().lower() for s in siblings if s.get("word")]
         if len(words) != 2:
             continue  # malformed -- wrong sibling count
         if len(set(words)) != len(words):
             continue  # category reuses the same word for both its own siblings
         if any(w in claimed for w in words):
             continue  # collides with an earlier category or an earlier puzzle
+        if any(s.get("correction_warning") for s in siblings):
+            continue  # word never confirmed to exist for the target POS
+        if any(not s.get("definition") for s in siblings):
+            continue  # schema requires a definition for every word used
         valid.append(cat)
         claimed.update(words)
     return valid
@@ -561,17 +596,16 @@ def print_result(word, puzzles):
             print(f"[{cat.get('sense_id')}] {label}  —  definition: {cat.get('definition')}")
             for sib in cat.get("siblings", []):
                 source = sib.get("source", "candidate")
-                wikt = sib.get("wiktionary_definition")
-                wikt_note = f", wikt: \"{wikt}\"" if wikt else ""
+                definition = sib.get("definition") or "NO DEFINITION"
                 corr = sib.get("corrected_from")
                 corr_note = f" (corrected from '{corr}')" if corr else ""
                 warn = sib.get("correction_warning")
                 warn_note = f" ({warn})" if warn else ""
 
                 if source == "candidate":
-                    print(f"  {sib.get('word')}{corr_note}")
+                    print(f"  {sib.get('word')}{corr_note}  —  {definition}")
                 else:
-                    print(f"  {sib.get('word')}  <-- SUGGESTED{corr_note}{wikt_note}{warn_note}")
+                    print(f"  {sib.get('word')}  <-- SUGGESTED{corr_note}  —  {definition}{warn_note}")
             print(f"  Reasoning: {cat.get('reasoning')}\n")
         if result.get("rejected_senses"):
             print("Rejected senses:")
