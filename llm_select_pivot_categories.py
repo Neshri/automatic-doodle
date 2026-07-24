@@ -192,6 +192,32 @@ format (och inget annat efter det):
 
     return "\n".join(lines)
 
+
+def build_feedback_addendum(n_found: int, n_total_senses: int, previous_response: str) -> str:
+    """
+    Returns a short, neutrally-worded addendum appended to the original prompt
+    for a within-attempt retry. Deliberately does NOT mention a required number
+    of categories — telling the model it must hit a floor causes it to force
+    weak/inaccurate categories to meet the target ("slop"). Instead, the model
+    is invited to try a different sense combination and told to apply the same
+    quality standard, not a higher quantity target.
+    """
+    return f"""
+---
+[Feedback från föregående försök]
+Du hittade {n_found} distinkt{'a' if n_found != 1 else ''} kategori{'er' if n_found != 1 else ''} \
+från de {n_total_senses} tillgängliga betydelserna.
+Undersök om det finns en annan kombination av dessa {n_total_senses} betydelser som ger
+fler ortogonala kategorier med lika stark semantisk separation — men bara om de håller
+samma kvalitetsstandard som dina regler kräver. Om inte, ange de {n_found} bästa du
+hittade och behåll din ursprungliga motivering.
+
+Ditt föregående svar:
+{previous_response}
+---
+"""
+
+
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 
 
@@ -275,7 +301,8 @@ def call_ollama(prompt, model, temperature, think):
     return "".join(full_content), "".join(full_thinking)
 
 
-def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args, used_words=None):
+def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
+                 used_words=None, extra_prompt_suffix=None):
     """
     Build prompt, call LLM, parse result for a single pivot word.
     Returns (result_dict, raw_response, thinking) or raises on hard failure.
@@ -286,6 +313,11 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args, use
     candidate list before it's even shown to the LLM -- cheaper and more
     reliable than only telling it "don't reuse these" after dangling them
     as top-ranked options.
+
+    extra_prompt_suffix: optional text appended after the main prompt body
+    before sending to Ollama -- used by the retry-with-feedback mechanism in
+    generate_puzzles_for_word to give the model a second look with context
+    from its previous attempt.
     """
     used_words = used_words or set()
     sense_reports = []
@@ -312,6 +344,8 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args, use
     avg_spread, _, _ = sense_spread(all_sense_ids, matrix, id_to_index, close_threshold=0.5)
 
     prompt = build_prompt(word, sense_reports, avg_spread, used_words=used_words)
+    if extra_prompt_suffix:
+        prompt = prompt + extra_prompt_suffix
 
     if args.show_prompt:
         print("=" * 60)
@@ -409,6 +443,12 @@ def generate_puzzles_for_word(word, multisense, matrix, meta, id_to_index, lexic
     after filtering (build_puzzles.py requires exactly 4 -- a puzzle needs
     4 senses to be valid, no point keeping a partial result), or after
     args.max_puzzles_per_word attempts, whichever comes first.
+
+    On the very first attempt (no puzzles produced yet), if fewer than 4
+    valid categories come back, a within-attempt retry fires: the model's
+    own response is shown back to it with a neutral nudge to try a different
+    sense combination (without revealing the 4-category floor). Controlled
+    by args.max_retries_per_attempt (default 1; 0 disables the retry).
     """
     used_words = set()
     puzzles = []
@@ -421,10 +461,35 @@ def generate_puzzles_for_word(word, multisense, matrix, meta, id_to_index, lexic
             break  # too few senses embedded at all, or JSON parse failure
 
         categories = filter_valid_categories(result.get("categories", []), used_words)
+
+        # ---- Within-attempt retry (first puzzle only) -------------------
+        # Only retry when this is the first puzzle attempt (puzzles list is
+        # empty) -- later attempts are expected to have a thinner pool, so
+        # retrying them would mostly waste calls.
+        max_retries = getattr(args, "max_retries_per_attempt", 1)
+        for retry_num in range(1, max_retries + 1):
+            if len(categories) >= 4 or len(puzzles) > 0:
+                break  # already sufficient, or not the first puzzle attempt
+            n_total = len(multisense[word])
+            print(f"  '{word}': attempt {attempt} retry {retry_num} — "
+                  f"{len(categories)} categories so far, asking for a different sense selection...")
+            feedback = build_feedback_addendum(len(categories), n_total, raw_response)
+            result, raw_response, thinking = process_word(
+                word, multisense, matrix, meta, id_to_index, lexicon, args,
+                used_words=used_words, extra_prompt_suffix=feedback,
+            )
+            if result is None:
+                break  # parse failure on retry
+            categories = filter_valid_categories(result.get("categories", []), used_words)
+        # ---- End retry --------------------------------------------------
+
         if len(categories) < 4:
             if attempt > 1:
                 print(f"  '{word}': attempt {attempt} only yielded {len(categories)} valid categories "
                       f"after collision filtering -- stopping here, keeping {len(puzzles)} puzzle(s).")
+            elif max_retries > 0:
+                print(f"  '{word}': {len(categories)} valid categories after {max_retries} "
+                      f"retr{'y' if max_retries == 1 else 'ies'} — dropping this puzzle.")
             break
 
         result["categories"] = categories
@@ -498,6 +563,12 @@ def main():
                           "the whole set at the expense of variety across different pivots. "
                           "Generation also stops early on its own once an attempt can't reach "
                           "a full 4-category puzzle without reusing an already-claimed sibling.")
+    ap.add_argument("--max-retries-per-attempt", type=int, default=1,
+                     help="How many within-attempt retries to allow when the first puzzle "
+                          "attempt yields fewer than 4 valid categories (default 1). Each "
+                          "retry shows the model its own previous response and asks it to "
+                          "explore a different sense combination. Use 0 to disable retries "
+                          "and restore the original behaviour.")
     args = ap.parse_args()
 
     with open(MULTISENSE_FILE, "r", encoding="utf-8") as f:
