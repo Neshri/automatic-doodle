@@ -38,61 +38,105 @@ from score_pivots import (
 from generate_multisense_json import get_wiktionary_senses, WIKTIONARY_USER_AGENT
 
 
-def build_word_inventory(lexicon: dict) -> list[str]:
+def build_word_inventory(lexicon: dict) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
     """
-    Returns a sorted, deduplicated list of every baseform in the lexicon.
-    This is the ground-truth vocabulary against which LLM-suggested words are
-    spell-checked: the same pool from which embedding candidates are drawn.
+    Returns (inventory_by_pos, all_words_map):
+    - inventory_by_pos: dict mapping POS tag ('nn', 'vb', 'av', etc.) to a dict of {baseform_lower: baseform}
+    - all_words_map: dict of {baseform_lower: baseform} across all POS
     """
-    return sorted({entry["baseform"] for entry in lexicon.values() if entry.get("baseform")})
+    inventory_by_pos = {}
+    all_words_map = {}
+    for entry in lexicon.values():
+        bf = entry.get("baseform")
+        pos = entry.get("part_of_speech")
+        if bf:
+            bf_lower = bf.strip().lower()
+            all_words_map[bf_lower] = bf
+            if pos:
+                inventory_by_pos.setdefault(pos, {})[bf_lower] = bf
+    return inventory_by_pos, all_words_map
 
 
-def correct_suggested_word(
-    word: str,
-    word_inventory: list[str],
+def verify_and_correct_sibling(
+    sib: dict,
+    candidate_list: list[dict],
+    target_pos: str | None,
+    inventory_by_pos: dict[str, dict[str, str]],
+    all_words_map: dict[str, str],
     session: requests.Session,
-) -> tuple[str, str | None]:
+) -> dict:
     """
-    Attempts to spell-correct `word` against `word_inventory` using
-    difflib.get_close_matches (case-insensitive comparison, result
-    returned in original inventory casing).
+    Validates and spell-corrects a sibling word returned by the LLM.
 
-    Strategy: try a tight cutoff (0.82) first; if that yields nothing,
-    fall back to a looser one (0.72).  Both thresholds are higher than
-    difflib's default 0.6 to avoid false positives on short Swedish words
-    that share many letters.
-
-    Returns (corrected_word, wiktionary_definition_or_None).
-    - If the word already exists in the inventory verbatim: returns it unchanged.
-    - If a close match is found and differs from the original: returns the
-      corrected spelling plus the first Wiktionary definition for it.
-    - If no match at all: returns the original word and None.
+    Key principles:
+    1. Both 'candidate' and 'suggested' words are validated.
+    2. Candidate words are checked against the specific candidate list for the sense.
+       If the LLM typo'd a candidate (e.g. 'fantasera' vs candidate 'fantisera'), it is corrected.
+    3. Suggested words are checked against the lexicon and Wiktionary ONLY for the target POS.
+       Fuzzy matching is strictly POS-restricted, preventing cross-POS mutations (e.g. verb 'förtrösta' -> noun 'förtröstan').
+    4. Multi-word phrases with particles ('lita på') are normalized to core baseform ('lita').
     """
-    word_lower = word.strip().lower()
+    word = sib.get("word", "").strip()
+    if not word:
+        return sib
+    source = sib.get("source", "candidate")
 
-    # Fast path: exact match (case-insensitive) — no correction needed.
-    inventory_lower = {w.lower(): w for w in word_inventory}
-    if word_lower in inventory_lower:
-        return inventory_lower[word_lower], None  # correct casing, no wikt fetch
+    cand_map = {c["baseform"].lower(): c["baseform"] for c in candidate_list if c.get("baseform")}
 
-    # Try two-pass fuzzy match: tight cutoff first, loose fallback.
-    inventory_list_lower = list(inventory_lower.keys())
-    match = difflib.get_close_matches(word_lower, inventory_list_lower, n=1, cutoff=0.82)
-    if not match:
-        match = difflib.get_close_matches(word_lower, inventory_list_lower, n=1, cutoff=0.72)
-    if not match:
-        return word, None  # no correction found
+    if source == "candidate":
+        if word.lower() in cand_map:
+            sib["word"] = cand_map[word.lower()]
+            return sib
 
-    corrected_lower = match[0]
-    corrected = inventory_lower[corrected_lower]  # restore original casing from inventory
+        # Fuzzy match against the sense's actual candidate list
+        cand_matches = difflib.get_close_matches(word.lower(), list(cand_map.keys()), n=1, cutoff=0.82)
+        if cand_matches:
+            corrected = cand_map[cand_matches[0]]
+            print(f"  [spell-fix candidate] '{word}' -> '{corrected}'")
+            sib["word"] = corrected
+            sib["corrected_from"] = word
+            return sib
 
-    if corrected_lower == word_lower:
-        return corrected, None  # already correct (just casing differed — already handled above)
+        # Not in candidate list nor a candidate typo -- re-classify as suggested
+        source = "suggested"
+        sib["source"] = "suggested"
 
-    # Fetch the Wiktionary definition for the corrected word as a sanity check.
-    wikt_senses = get_wiktionary_senses(session, corrected)
-    definition = wikt_senses[0]["definition"] if wikt_senses else None
-    return corrected, definition
+    # --- Suggested word validation ---
+    core_word = word.split()[0] if " " in word else word
+
+    if core_word.lower() in cand_map:
+        sib["word"] = cand_map[core_word.lower()]
+        sib["source"] = "candidate"
+        return sib
+
+    pos_inv = inventory_by_pos.get(target_pos, {}) if target_pos else all_words_map
+
+    # 1. Exact match in lexicon for target POS
+    if core_word.lower() in pos_inv:
+        sib["word"] = pos_inv[core_word.lower()]
+        return sib
+
+    # 2. Check Wiktionary for target POS
+    wikt_senses = get_wiktionary_senses(session, core_word)
+    matching_wikt = [s for s in wikt_senses if s.get("part_of_speech") == target_pos] if target_pos else wikt_senses
+    if matching_wikt:
+        sib["word"] = core_word
+        sib["wiktionary_definition"] = matching_wikt[0]["definition"]
+        return sib
+
+    # 3. Strict POS-restricted fuzzy match in lexicon
+    pos_list = list(pos_inv.keys())
+    matches = difflib.get_close_matches(core_word.lower(), pos_list, n=1, cutoff=0.87)
+    if matches:
+        corrected = pos_inv[matches[0]]
+        print(f"  [spell-fix suggested POS={target_pos}] '{word}' -> '{corrected}'")
+        sib["word"] = corrected
+        sib["corrected_from"] = word
+        return sib
+
+    # Word not found for target POS -- leave word as-is and flag warning
+    sib["correction_warning"] = f"not found in lexicon for POS '{target_pos}'"
+    return sib
 
 
 def build_prompt(word, sense_reports, avg_spread, used_words=None):
@@ -378,26 +422,22 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
         print(f"  Could not parse JSON from model response for '{word}'.")
         return None, raw_response, thinking
 
-    # ---- Spell-correct any LLM-suggested sibling words -----------------
-    word_inventory = args._word_inventory  # injected into args in main()
+    # ---- Spell-correct and validate sibling words (POS-aware) ----------
+    inventory_by_pos, all_words_map = args._word_inventory_data  # injected into args in main()
     session_for_wikt = requests.Session()
     session_for_wikt.headers.update({"User-Agent": WIKTIONARY_USER_AGENT})
+    sense_map = {sr["id"]: sr for sr in sense_reports}
+
     for cat in result.get("categories", []):
+        sid = cat.get("sense_id")
+        sr = sense_map.get(sid, {})
+        target_pos = sr.get("pos")
+        candidate_list = sr.get("candidates", [])
+
         for sib in cat.get("siblings", []):
-            if sib.get("source") != "suggested":
-                continue
-            original = sib.get("word", "")
-            corrected, wikt_def = correct_suggested_word(original, word_inventory, session_for_wikt)
-            if corrected.lower() != original.strip().lower():
-                print(f"  [spell-fix] '{original}' → '{corrected}'"
-                      + (f" ({wikt_def[:60]}…)" if wikt_def and len(wikt_def) > 60 else
-                         f" ({wikt_def})" if wikt_def else " (no Wiktionary definition found)"))
-                sib["word"] = corrected
-                sib["corrected_from"] = original
-                sib["wiktionary_definition"] = wikt_def
-            elif wikt_def is None and corrected.lower() not in {w.lower() for w in word_inventory}:
-                # Word not in inventory at all and no correction found — flag it.
-                sib["correction_warning"] = "not found in lexicon"
+            verify_and_correct_sibling(
+                sib, candidate_list, target_pos, inventory_by_pos, all_words_map, session_for_wikt
+            )
     # --------------------------------------------------------------------
 
     return result, raw_response, thinking
@@ -520,16 +560,18 @@ def print_result(word, puzzles):
             label = cat.get("category_label", "(no label)")
             print(f"[{cat.get('sense_id')}] {label}  —  definition: {cat.get('definition')}")
             for sib in cat.get("siblings", []):
-                if sib.get("source") == "candidate":
-                    print(f"  {sib.get('word')}")
-                elif sib.get("corrected_from"):
-                    wikt = sib.get("wiktionary_definition")
-                    wikt_note = f", wikt: \"{wikt}\"" if wikt else ""
-                    print(f"  {sib.get('word')}  <-- SUGGESTED (corrected from '{sib['corrected_from']}'){wikt_note}")
-                elif sib.get("correction_warning"):
-                    print(f"  {sib.get('word')}  <-- SUGGESTED (not found in lexicon — verify spelling manually)")
+                source = sib.get("source", "candidate")
+                wikt = sib.get("wiktionary_definition")
+                wikt_note = f", wikt: \"{wikt}\"" if wikt else ""
+                corr = sib.get("corrected_from")
+                corr_note = f" (corrected from '{corr}')" if corr else ""
+                warn = sib.get("correction_warning")
+                warn_note = f" ({warn})" if warn else ""
+
+                if source == "candidate":
+                    print(f"  {sib.get('word')}{corr_note}")
                 else:
-                    print(f"  {sib.get('word')}  <-- SUGGESTED, not in candidate list, verify")
+                    print(f"  {sib.get('word')}  <-- SUGGESTED{corr_note}{wikt_note}{warn_note}")
             print(f"  Reasoning: {cat.get('reasoning')}\n")
         if result.get("rejected_senses"):
             print("Rejected senses:")
@@ -579,10 +621,9 @@ def main():
     matrix, meta = embed_missing_senses(multisense, matrix, meta)
     id_to_index = {m["id"]: i for i, m in enumerate(meta)}
 
-    # Build word inventory once and attach to args so process_word() can
-    # access it without an extra parameter threading through every call.
-    args._word_inventory = build_word_inventory(lexicon)
-    print(f"Word inventory built: {len(args._word_inventory)} unique baseforms.")
+    # Build POS-aware word inventory once and attach to args
+    args._word_inventory_data = build_word_inventory(lexicon)
+    print(f"Word inventory built: {len(args._word_inventory_data[1])} unique baseforms across POS.")
 
     # ------------------------------------------------------------------ #
     # Single-word mode                                                     #
