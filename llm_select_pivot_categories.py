@@ -32,16 +32,22 @@ import requests
 
 from score_pivots import (
     load_embeddings, load_lexicon, get_candidates, sense_spread,
-    MULTISENSE_FILE,
+    embed_missing_senses, MULTISENSE_FILE,
 )
 
 
-def build_prompt(word, sense_reports, avg_spread):
+def build_prompt(word, sense_reports, avg_spread, used_words=None):
+    used_words = used_words or set()
     lines = []
     lines.append(f"Pivotord: \"{word}\" (svenska)")
     lines.append(f"Ordet har {len(sense_reports)} betydelser. Ett pussel i Connections-stil behöver högst 4.")
     lines.append(f"Genomsnittligt avstånd mellan betydelserna: avg_pairwise_sim={avg_spread:.3f} "
                  f"(lägre = betydelserna är mer distinkta från varandra, vilket är bra för pusslet).")
+    if used_words:
+        lines.append("")
+        lines.append(f"VIKTIGT: Detta pivotord har redan använts i tidigare pussel i denna omgång. "
+                      f"Följande syskonord är REDAN ANVÄNDA och FÅR INTE föreslås igen, varken som "
+                      f"\"candidate\" eller \"suggested\": {', '.join(sorted(used_words))}")
     lines.append("")
     lines.append("För varje betydelse nedan: dess definition, samt dess topprankade kandidatord "
                   "(redan filtrerade så att ordets egna andra betydelser är borttagna, rankade efter "
@@ -83,6 +89,22 @@ def build_prompt(word, sense_reports, avg_spread):
    är oändligt mycket bättre än ett pussel med 4 kategorier där någon är sökt, för nära en annan, 
    eller kräver svaga kandidater.
 
+5. KATEGORINAMN (category_label):
+   Ge varje kategori ett kort, spelbart namn (2-4 ord) som en spelare skulle se som kategoririd —
+   t.ex. "MILITÄR RANG" eller "DEL AV EN BOK".
+   - category_label är INTE samma sak som definition (betydelsens ordboksdefinition) och INTE
+     samma sak som reasoning (en mening som motiverar varför syskonorden hör ihop). Upprepa inte
+     definition eller reasoning ordagrant i category_label.
+   - Om definition redan är kort och fungerar fint som ett kategorinamn i sig (t.ex. "dokument"),
+     är det okej att category_label liknar den nära — men skriv den ändå som en egen fras, inte en
+     kopiering.
+
+6. INGA DUBBLETTER:
+   - Samma syskonord får ALDRIG förekomma i mer än en kategori i samma svar — varje ord representeras
+     av EN bricka i spelet och kan inte tillhöra två kategorier samtidigt.
+   - Om ett ord som skulle passa bra redan är upptaget (antingen av en annan kategori i detta svar,
+     eller finns med i listan över REDAN ANVÄNDA SYSKONORD ovan om sådan finns), välj ett annat ord.
+
 INSTRUKTIONER FÖR UTMATNING:
 - Välj max 4 betydelser (färre är helt okej).
 - För varje vald betydelse: välj EXAKT 2 syskonord. Föredra kandidatlistan ("source": "candidate"). 
@@ -95,7 +117,7 @@ format (och inget annat efter det):
 ```json
 {
   "categories": [
-    {"sense_id": "...", "definition": "...",
+    {"sense_id": "...", "definition": "...", "category_label": "...",
      "siblings": [
         {"word": "...", "source": "candidate"},
         {"word": "...", "source": "suggested"}
@@ -194,21 +216,30 @@ def call_ollama(prompt, model, temperature, think):
     return "".join(full_content), "".join(full_thinking)
 
 
-def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
+def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args, used_words=None):
     """
     Build prompt, call LLM, parse result for a single pivot word.
     Returns (result_dict, raw_response, thinking) or raises on hard failure.
     result_dict is None if the word was skipped (too few senses) or parse failed.
+
+    used_words: sibling words already claimed by an earlier puzzle for this
+    same pivot (see generate_puzzles_for_word). Filtered out of each sense's
+    candidate list before it's even shown to the LLM -- cheaper and more
+    reliable than only telling it "don't reuse these" after dangling them
+    as top-ranked options.
     """
+    used_words = used_words or set()
     sense_reports = []
     for sense in multisense[word]:
         sid = sense["id"]
         if sid not in id_to_index:
             continue
         pivot_entry = lexicon.get(sid, {})
-        pivot_pos = pivot_entry.get("part_of_speech")
+        pivot_pos = pivot_entry.get("part_of_speech") or sense.get("part_of_speech")
         pivot_baseform = pivot_entry.get("baseform", word)
         candidates = get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, args.top_k)
+        if used_words:
+            candidates = [c for c in candidates if c["baseform"].strip().lower() not in used_words]
         sense_reports.append({
             "id": sid, "pos": pivot_pos, "definition": sense["definition"],
             "flags": [], "candidates": candidates,
@@ -221,7 +252,7 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
     all_sense_ids = [sr["id"] for sr in sense_reports]
     avg_spread, _, _ = sense_spread(all_sense_ids, matrix, id_to_index, close_threshold=0.5)
 
-    prompt = build_prompt(word, sense_reports, avg_spread)
+    prompt = build_prompt(word, sense_reports, avg_spread, used_words=used_words)
 
     if args.show_prompt:
         print("=" * 60)
@@ -257,21 +288,99 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
     return result, raw_response, thinking
 
 
-def print_result(word, result):
-    """Pretty-print a parsed LLM result to stdout."""
-    categories = result.get("categories", [])
-    print(f"\n########## LLM selection for '{word}' ##########")
-    print(f"{len(categories)} usable categor{'y' if len(categories) == 1 else 'ies'} found.\n")
+def filter_valid_categories(categories, used_words):
+    """
+    Post-hoc safety net -- don't just trust the LLM followed the
+    no-duplicate-siblings / don't-reuse-used-words instructions. Walks
+    categories in the order the LLM returned them, keeping the first claim
+    on any given sibling word and dropping any LATER category that reuses
+    a word already claimed -- either by an earlier category in this same
+    response, or by an earlier puzzle for this pivot (used_words). A
+    colliding category is dropped whole rather than salvaged down to one
+    sibling, since a category needs exactly two.
+    """
+    claimed = set(used_words)
+    valid = []
     for cat in categories:
-        print(f"[{cat.get('sense_id')}] {cat.get('definition')}")
-        for sib in cat.get("siblings", []):
-            tag = "" if sib.get("source") == "candidate" else "  <-- SUGGESTED, not in candidate list, verify"
-            print(f"  {sib.get('word')}{tag}")
-        print(f"  Reasoning: {cat.get('reasoning')}\n")
-    if result.get("rejected_senses"):
-        print("Rejected senses:")
-        for r in result["rejected_senses"]:
-            print(f"  {r.get('sense_id')}: {r.get('reason')}")
+        words = [s.get("word", "").strip().lower() for s in cat.get("siblings", []) if s.get("word")]
+        if len(words) != 2:
+            continue  # malformed -- wrong sibling count
+        if len(set(words)) != len(words):
+            continue  # category reuses the same word for both its own siblings
+        if any(w in claimed for w in words):
+            continue  # collides with an earlier category or an earlier puzzle
+        valid.append(cat)
+        claimed.update(words)
+    return valid
+
+
+def generate_puzzles_for_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
+    """
+    Repeatedly calls the LLM for the same pivot, each time telling it which
+    sibling words earlier puzzles for this pivot already claimed, so a
+    sense-rich pivot (Wiktionary's fallback senses can add several
+    near-duplicate senses to one pivot -- e.g. "tro" ended up with three
+    different phrasings of "religious belief") can yield SEVERAL distinct
+    puzzles instead of forcing everything into one call or throwing the
+    near-duplicates away.
+
+    Stops as soon as an attempt can't produce a full 4-category puzzle
+    after filtering (build_puzzles.py requires exactly 4 -- a puzzle needs
+    4 senses to be valid, no point keeping a partial result), or after
+    args.max_puzzles_per_word attempts, whichever comes first.
+    """
+    used_words = set()
+    puzzles = []
+
+    for attempt in range(1, args.max_puzzles_per_word + 1):
+        result, raw_response, thinking = process_word(
+            word, multisense, matrix, meta, id_to_index, lexicon, args, used_words=used_words
+        )
+        if result is None:
+            break  # too few senses embedded at all, or JSON parse failure
+
+        categories = filter_valid_categories(result.get("categories", []), used_words)
+        if len(categories) < 4:
+            if attempt > 1:
+                print(f"  '{word}': attempt {attempt} only yielded {len(categories)} valid categories "
+                      f"after collision filtering -- stopping here, keeping {len(puzzles)} puzzle(s).")
+            break
+
+        result["categories"] = categories
+        puzzles.append(result)
+
+        for cat in categories:
+            for sib in cat.get("siblings", []):
+                w = sib.get("word", "").strip().lower()
+                if w:
+                    used_words.add(w)
+
+        print(f"  '{word}': puzzle {attempt} complete ({len(categories)} categories, "
+              f"{len(used_words)} sibling words claimed so far).")
+
+    return puzzles
+
+
+def print_result(word, puzzles):
+    """Pretty-print all puzzles generated for a pivot to stdout."""
+    if not puzzles:
+        print(f"\n########## '{word}': no valid puzzle produced ##########")
+        return
+    for i, result in enumerate(puzzles, 1):
+        categories = result.get("categories", [])
+        print(f"\n########## '{word}' — puzzle {i}/{len(puzzles)} ##########")
+        print(f"{len(categories)} usable categor{'y' if len(categories) == 1 else 'ies'} found.\n")
+        for cat in categories:
+            label = cat.get("category_label", "(no label)")
+            print(f"[{cat.get('sense_id')}] {label}  —  definition: {cat.get('definition')}")
+            for sib in cat.get("siblings", []):
+                tag = "" if sib.get("source") == "candidate" else "  <-- SUGGESTED, not in candidate list, verify"
+                print(f"  {sib.get('word')}{tag}")
+            print(f"  Reasoning: {cat.get('reasoning')}\n")
+        if result.get("rejected_senses"):
+            print("Rejected senses:")
+            for r in result["rejected_senses"]:
+                print(f"  {r.get('sense_id')}: {r.get('reason')}")
 
 
 def main():
@@ -294,6 +403,12 @@ def main():
     ap.add_argument("--show-prompt", action="store_true", help="Print the full prompt sent to the LLM")
     ap.add_argument("--show-raw", action="store_true", help="Always print the raw LLM response, even on successful parse")
     ap.add_argument("--show-thinking", action="store_true", help="Print the model's thinking trace, if any")
+    ap.add_argument("--max-puzzles-per-word", type=int, default=3,
+                     help="Cap on how many separate puzzles to try generating from one pivot "
+                          "(default 3), so one exceptionally sense-rich pivot doesn't dominate "
+                          "the whole set at the expense of variety across different pivots. "
+                          "Generation also stops early on its own once an attempt can't reach "
+                          "a full 4-category puzzle without reusing an already-claimed sibling.")
     args = ap.parse_args()
 
     with open(MULTISENSE_FILE, "r", encoding="utf-8") as f:
@@ -301,6 +416,7 @@ def main():
 
     matrix, meta = load_embeddings()
     lexicon = load_lexicon()
+    matrix, meta = embed_missing_senses(multisense, matrix, meta)
     id_to_index = {m["id"]: i for i, m in enumerate(meta)}
 
     # ------------------------------------------------------------------ #
@@ -311,11 +427,10 @@ def main():
             print(f"'{args.word}' not in {MULTISENSE_FILE}.")
             return
 
-        result, raw_response, thinking = process_word(
+        puzzles = generate_puzzles_for_word(
             args.word, multisense, matrix, meta, id_to_index, lexicon, args
         )
-        if result is not None:
-            print_result(args.word, result)
+        print_result(args.word, puzzles)
         return
 
     # ------------------------------------------------------------------ #
@@ -342,7 +457,7 @@ def main():
 
         print(f"[{i}/{total}] Processing '{word}'...")
         try:
-            result, raw_response, thinking = process_word(
+            puzzles = generate_puzzles_for_word(
                 word, multisense, matrix, meta, id_to_index, lexicon, args
             )
         except Exception as exc:
@@ -351,20 +466,23 @@ def main():
             # (remove this entry manually if you want to retry it).
             saved[word] = {"error": str(exc)}
         else:
-            if result is not None:
-                print_result(word, result)
-                saved[word] = result
+            if puzzles:
+                print_result(word, puzzles)
+                saved[word] = {"puzzles": puzzles}
             else:
-                # parse failure or too-few-senses — record a sentinel
-                saved[word] = {"skipped": True}
+                # too-few-senses, parse failure, or first attempt didn't reach
+                # 4 valid categories -- record a sentinel so resume skips it
+                saved[word] = {"puzzles": []}
 
         # Write after every candidate so progress is never lost.
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(saved, f, ensure_ascii=False, indent=2)
         print(f"  → Saved to {args.output}")
 
-    done = sum(1 for v in saved.values() if "categories" in v)
-    print(f"\nDone. {done}/{total} words produced usable categories.")
+    done = sum(1 for v in saved.values() if v.get("puzzles"))
+    total_puzzles = sum(len(v.get("puzzles", [])) for v in saved.values())
+    print(f"\nDone. {done}/{total} words produced at least one usable puzzle.")
+    print(f"  {total_puzzles} puzzles total across those words.")
     print(f"Results written to {args.output}")
 
 

@@ -1,6 +1,9 @@
 embeddings.jsonl
 embeddings.npy
 embeddings_meta.json
+wiktionary_embeddings.jsonl
+wiktionary_embeddings.npy
+wiktionary_embeddings_meta.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

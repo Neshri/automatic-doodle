@@ -21,6 +21,21 @@ first guess, calibrate against words you already know like affär/back):
     may just be bad pivot material regardless of tuning.
   - NOT_EMBEDDED / TOO_FEW_CANDIDATES: data gaps, not quality judgments.
 
+PATCHED (Wiktionary on-demand embedding): multisense_words.json can now
+contain senses tagged "source": "wiktionary" (added by
+generate_multisense_json.py as a fallback for words Lexin alone didn't
+have 4 senses for) that were never part of full_lexicon.json /
+embed_lexicon.py's run, so they start out missing from the base
+embeddings matrix -- which used to mean they were silently skipped
+(NOT_EMBEDDED) and never scored or offered to the LLM at all.
+embed_missing_senses() embeds them on demand, using the same
+model/endpoint/prefix/text-cleaning as embed_lexicon.py so the vectors
+land in a comparable space, and appends them to the in-memory matrix.
+They're deliberately never added to full_lexicon.json itself, so
+get_candidates()'s existing Lexin-only filter keeps them out of the
+CANDIDATE pool for other pivots -- they can be searched FROM (as a
+pivot's own sense) but never suggested TO another pivot as a sibling.
+
 Usage:
   python score_pivots.py                       # full report, sorted most-promising first
   python score_pivots.py --word affär          # verbose single-pivot view
@@ -32,14 +47,29 @@ Usage:
 import json
 import os
 import re
+import time
 import argparse
 import numpy as np
+import requests
 
 MULTISENSE_FILE = "multisense_words.json"
 MATRIX_FILE = "embeddings.npy"
 META_FILE = "embeddings_meta.json"
 JSONL_FILE = "embeddings.jsonl"
 LEXICON_FILE = "full_lexicon.json"
+
+# Wiktionary on-demand embedding -- must match embed_lexicon.py's settings
+# (MODEL, OLLAMA_URL, OLLAMA_PREFIX, NUM_GPU) or the new vectors won't land
+# in a comparable space to the rest of the matrix. Copy-pasted rather than
+# imported, so if embed_lexicon.py's settings ever change, these need
+# updating by hand too -- a real footgun, just not one worth a shared-
+# constants refactor right now.
+WIKTIONARY_EMBED_CACHE = "wiktionary_embeddings.jsonl"
+EMBED_URL = "http://localhost:11434/api/embed"
+EMBED_MODEL = "nomic-embed-text-v2-moe"
+EMBED_PREFIX = ""  # must match embed_lexicon.py's OLLAMA_PREFIX
+EMBED_NUM_GPU = 2  # must match embed_lexicon.py's NUM_GPU
+EMBED_BATCH_SIZE = 32
 
 # SALDO/Lexin POS tags for closed-class words — inferred from general
 # convention, NOT verified against your actual tag inventory. Worth
@@ -81,6 +111,134 @@ def load_embeddings():
 def load_lexicon():
     with open(LEXICON_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _clean_for_embedding(definition: str) -> str:
+    """Same cleanup as embed_lexicon.py's clean_for_embedding() -- strips
+    Lexin's bare-digit cross-reference parens, e.g. 'bra, fin (2)' ->
+    'bra, fin'. Duplicated here rather than imported so this module
+    doesn't depend on embed_lexicon.py's script-level state; keep the two
+    in sync if either changes."""
+    cleaned = re.sub(r"\s*\(\d+\)", "", definition)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    return cleaned if cleaned else definition
+
+
+def _load_wiktionary_embed_cache() -> dict:
+    cache = {}
+    if os.path.exists(WIKTIONARY_EMBED_CACHE):
+        with open(WIKTIONARY_EMBED_CACHE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                    cache[rec["id"]] = rec
+                except Exception:
+                    continue  # tolerate a truncated last line from a crash
+    return cache
+
+
+def embed_missing_senses(multisense: dict, matrix: np.ndarray, meta: list) -> tuple[np.ndarray, list]:
+    """
+    Finds every sense across multisense_words.json tagged
+    "source": "wiktionary" that isn't already in the embeddings matrix,
+    embeds it on demand (same model/prefix/cleaning as embed_lexicon.py),
+    and appends it to the matrix/meta so get_candidates()/sense_spread()
+    can look it up like any other sense.
+
+    Restricted to "source": "wiktionary" specifically, not "any sense
+    missing from the matrix" -- a stray un-embedded LEXIN sense would
+    indicate a real gap in the dedicated embed_lexicon.py run and should
+    surface as NOT_EMBEDDED for you to investigate, not get silently
+    patched over here.
+
+    Caches results to WIKTIONARY_EMBED_CACHE (same append-only-JSONL
+    convention as embeddings.jsonl) so repeat runs don't re-hit Ollama for
+    senses already embedded.
+    """
+    id_to_index = {m["id"]: i for i, m in enumerate(meta)}
+
+    missing = []
+    seen_ids = set()
+    for word, senses in multisense.items():
+        for sense in senses:
+            sid = sense.get("id")
+            if not sid or sid in id_to_index or sid in seen_ids:
+                continue
+            if sense.get("source") != "wiktionary":
+                continue
+            missing.append(sense)
+            seen_ids.add(sid)
+
+    if not missing:
+        return matrix, meta
+
+    cache = _load_wiktionary_embed_cache()
+    still_missing = [s for s in missing if s["id"] not in cache]
+    print(f"  {len(missing)} Wiktionary-sourced senses need embeddings "
+          f"({len(missing) - len(still_missing)} already cached, {len(still_missing)} to fetch)...")
+
+    if still_missing:
+        session = requests.Session()
+        with open(WIKTIONARY_EMBED_CACHE, "a", encoding="utf-8") as out:
+            for batch_start in range(0, len(still_missing), EMBED_BATCH_SIZE):
+                batch = still_missing[batch_start:batch_start + EMBED_BATCH_SIZE]
+                texts = [_clean_for_embedding(s["definition"]) for s in batch]
+                payload = {
+                    "model": EMBED_MODEL,
+                    "input": [EMBED_PREFIX + t for t in texts],
+                    "options": {"num_gpu": EMBED_NUM_GPU},
+                }
+                try:
+                    r = session.post(EMBED_URL, json=payload, timeout=60)
+                    r.raise_for_status()
+                    data = r.json()
+                    vecs = data.get("embeddings") or [data.get("embedding")]
+                    if not vecs or vecs[0] is None:
+                        raise KeyError(f"Unexpected Ollama response: {list(data.keys())}")
+                except Exception as e:
+                    print(f"  [Warning] Failed to embed a batch of {len(batch)} Wiktionary senses: {e}. "
+                          f"Retrying once...")
+                    time.sleep(1)
+                    try:
+                        r = session.post(EMBED_URL, json=payload, timeout=60)
+                        r.raise_for_status()
+                        data = r.json()
+                        vecs = data.get("embeddings") or [data.get("embedding")]
+                    except Exception as e2:
+                        print(f"  [Warning] Batch failed again, skipping {len(batch)} senses "
+                              f"(will stay NOT_EMBEDDED): {e2}")
+                        continue
+
+                for sense, text, vec in zip(batch, texts, vecs):
+                    rec = {"id": sense["id"], "text": text, "embedding": vec}
+                    cache[sense["id"]] = rec
+                    out.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                out.flush()
+
+    new_vectors, new_meta = [], []
+    for s in missing:
+        rec = cache.get(s["id"])
+        if not rec:
+            continue  # embedding failed even after retry -- stays NOT_EMBEDDED downstream
+        new_vectors.append(rec["embedding"])
+        new_meta.append({"id": rec["id"], "text": rec["text"]})
+
+    if not new_vectors:
+        return matrix, meta
+
+    new_matrix = np.array(new_vectors, dtype=np.float32)
+    norms = np.linalg.norm(new_matrix, axis=1, keepdims=True)
+    norms[norms == 0] = 1
+    new_matrix = new_matrix / norms  # same pre-normalization as finalize()
+
+    matrix = np.vstack([matrix, new_matrix])
+    meta = meta + new_meta
+    print(f"  Added {len(new_vectors)} Wiktionary-sourced vectors to the matrix "
+          f"(now {matrix.shape[0]} total).")
+    return matrix, meta
 
 
 def get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, top_k):
@@ -246,6 +404,7 @@ def main():
 
     matrix, meta = load_embeddings()
     lexicon = load_lexicon()
+    matrix, meta = embed_missing_senses(multisense, matrix, meta)
     id_to_index = {m["id"]: i for i, m in enumerate(meta)}
 
     words_to_check = [args.word] if args.word else list(multisense.keys())
@@ -267,7 +426,7 @@ def main():
                 continue
 
             pivot_entry = lexicon.get(sid, {})
-            pivot_pos = pivot_entry.get("part_of_speech")
+            pivot_pos = pivot_entry.get("part_of_speech") or sense.get("part_of_speech")
             pivot_baseform = pivot_entry.get("baseform", word)
 
             candidates = get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, args.top_k)

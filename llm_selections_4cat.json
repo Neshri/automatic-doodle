@@ -1,0 +1,2854 @@
+{
+  "akt": {
+    "categories": [
+      {
+        "sense_id": "lexin--akt..1",
+        "definition": "ceremoni",
+        "siblings": [
+          {
+            "word": "ritual",
+            "source": "candidate"
+          },
+          {
+            "word": "invigning",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ritual (lat. ritualis), Ord 2 rot: invign (sv. viga). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda orden beskriver formella, rituella händelser."
+      },
+      {
+        "sense_id": "lexin--akt..2",
+        "definition": "handling, process",
+        "siblings": [
+          {
+            "word": "dåd",
+            "source": "candidate"
+          },
+          {
+            "word": "gärning",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: dåd (fornsv. dáð), Ord 2 rot: gärn (sv. göra). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Här fokuseras det på 'akt' som en utförd handling eller prestation."
+      },
+      {
+        "sense_id": "lexin--akt..3",
+        "definition": "del av en teaterpjäs",
+        "siblings": [
+          {
+            "word": "scen",
+            "source": "candidate"
+          },
+          {
+            "word": "tablå",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: scen (grek. skene), Ord 2 rot: tablå (fr. tableau). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Dessa är strukturella indelningar av ett dramatiskt verk."
+      },
+      {
+        "sense_id": "lexin--akt..4",
+        "definition": "dokument",
+        "siblings": [
+          {
+            "word": "urkund",
+            "source": "candidate"
+          },
+          {
+            "word": "dossier",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ur-kund (sv. kunskap/bevis), Ord 2 rot: dossier (fr. dos). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Här avses 'akt' i betydelsen ett officiellt dokument eller en samling handlingar i ett ärende."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "bas": {
+    "categories": [
+      {
+        "sense_id": "lexin--bas..3",
+        "definition": "fundament som något vilar på",
+        "siblings": [
+          {
+            "word": "sockel",
+            "source": "candidate"
+          },
+          {
+            "word": "hörnsten",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sockel, Ord 2 rot: hörn- + sten. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver den fysiska nederdelen av en byggnad eller struktur."
+      },
+      {
+        "sense_id": "lexin--bas..4",
+        "definition": "något grundläggande, utgångspunkt",
+        "siblings": [
+          {
+            "word": "utgångspunkt",
+            "source": "candidate"
+          },
+          {
+            "word": "rot",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: utgång/punkt, Ord 2 rot: rot. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver ett abstrakt ursprung eller en startpunkt för något."
+      },
+      {
+        "sense_id": "lexin--bas..5",
+        "definition": "militär anläggning (ofta utanför det egna landet)",
+        "siblings": [
+          {
+            "word": "garnison",
+            "source": "candidate"
+          },
+          {
+            "word": "kasern",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: garnison, Ord 2 rot: kasern. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är termer för militära förläggningar eller anläggningar."
+      },
+      {
+        "sense_id": "lexin--bas..6",
+        "definition": "kemiskt ämne som kan ta upp vätejoner",
+        "siblings": [
+          {
+            "word": "soda",
+            "source": "candidate"
+          },
+          {
+            "word": "kalk",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: soda, Ord 2 rot: kalk. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är konkreta exempel på kemiska ämnen som fungerar som baser."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "bryter": {
+    "categories": [
+      {
+        "sense_id": "lexin--bryter..2",
+        "definition": "kommer i konflikt med lagen, uppfyller inte, kränker",
+        "siblings": [
+          {
+            "word": "överträda",
+            "source": "candidate"
+          },
+          {
+            "word": "kränka",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: träda, Ord 2 rot: kränk. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Juridisk domän; handlar om att ignorera regler eller lagar."
+      },
+      {
+        "sense_id": "lexin--bryter..10",
+        "definition": "får att ändra riktning",
+        "siblings": [
+          {
+            "word": "vända",
+            "source": "candidate"
+          },
+          {
+            "word": "kantra",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: vänd, Ord 2 rot: kantr. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Navigationsdomän; handlar om fysisk riktningsförändring."
+      },
+      {
+        "sense_id": "lexin--bryter..9",
+        "definition": "slås till skum",
+        "siblings": [
+          {
+            "word": "skumma",
+            "source": "candidate"
+          },
+          {
+            "word": "vispa",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: skumm, Ord 2 rot: visp. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Kulinarisk domän; handlar om att skapa luftbubblor i en vätska."
+      },
+      {
+        "sense_id": "lexin--bryter..1",
+        "definition": "får att spricka sönder i två delar (ofta genom kraftig böjning)",
+        "siblings": [
+          {
+            "word": "spräcka",
+            "source": "candidate"
+          },
+          {
+            "word": "krossa",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: spräck, Ord 2 rot: kross. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Mekanisk domän; handlar om fysisk destruktion genom kraft."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--bryter..3",
+        "reason": "För nära betydelse 4 (nyans/accent) och svagare verb-kandidater."
+      },
+      {
+        "sense_id": "lexin--bryter..4",
+        "reason": "Brist på starka syskonord som är verb (de flesta kandidater var substantiv)."
+      },
+      {
+        "sense_id": "lexin--bryter..5",
+        "reason": "För lik betydelse 6; handlar om avbrott i kontakt."
+      },
+      {
+        "sense_id": "lexin--bryter..6",
+        "reason": "För lik betydelse 5; dessutom är 'avbryta' för nära pivotordets rot."
+      },
+      {
+        "sense_id": "lexin--bryter..7",
+        "reason": "Betydelsen 'forcerar motstånd' är något vag jämfört med de övriga valda."
+      },
+      {
+        "sense_id": "lexin--bryter..8",
+        "reason": "För lik betydelse 1 (fysisk förstörelse)."
+      }
+    ]
+  },
+  "bräcker": {
+    "categories": [
+      {
+        "sense_id": "lexin--bräcker..1",
+        "definition": "knäcker, bryter",
+        "siblings": [
+          {
+            "word": "knäcka",
+            "source": "candidate"
+          },
+          {
+            "word": "bända",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: knäck-, Ord 2 rot: bänd-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fysisk handling av att bryta eller tvinga sönder något."
+      },
+      {
+        "sense_id": "lexin--bräcker..2",
+        "definition": "överträffar, stukar",
+        "siblings": [
+          {
+            "word": "övergå",
+            "source": "candidate"
+          },
+          {
+            "word": "slå",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: gå-, Ord 2 rot: slå-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Att vara bättre än någon annan eller överträffa en prestation."
+      },
+      {
+        "sense_id": "lexin--bräcker..3",
+        "definition": "steker lätt",
+        "siblings": [
+          {
+            "word": "fräsa",
+            "source": "candidate"
+          },
+          {
+            "word": "bryna",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: fräs-, Ord 2 rot: bryn-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Matlagningstermer för lätt stekning eller bryning."
+      },
+      {
+        "sense_id": "lexin--bräcker..4",
+        "definition": "gryr",
+        "siblings": [
+          {
+            "word": "dagas",
+            "source": "candidate"
+          },
+          {
+            "word": "ljusna",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: dag-, Ord 2 rot: ljus-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver övergången från natt till dag."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "disk": {
+    "categories": [
+      {
+        "sense_id": "lexin--disk..1",
+        "definition": "smalt och högt bord (i butik, bank etc.) där kunderna betjänas",
+        "siblings": [
+          {
+            "word": "kassa",
+            "source": "candidate"
+          },
+          {
+            "word": "bar",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: kassa (fr. fr.), Ord 2 rot: bar (eng.). Jag bekräftar att de inte delar stam med disk.",
+        "reasoning": "Beskriver olika typer av betjäningsytor i kommersiella miljöer."
+      },
+      {
+        "sense_id": "lexin--disk..2",
+        "definition": "bestick, tallrikar o.d. som diskas (1)",
+        "siblings": [
+          {
+            "word": "porslin",
+            "source": "candidate"
+          },
+          {
+            "word": "bestick",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: porslin (kinesiska/fr.), Ord 2 rot: bestick (svensk). Jag bekräftar att de inte delar stam med disk.",
+        "reasoning": "Beskriver de fysiska föremålen som utgör 'disken' i ett hushåll."
+      },
+      {
+        "sense_id": "lexin--disk..3",
+        "definition": "skiva där man lagrar data",
+        "siblings": [
+          {
+            "word": "minne",
+            "source": "candidate"
+          },
+          {
+            "word": "band",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: minne (germ.), Ord 2 rot: band (germ.). Jag bekräftar att de inte delar stam med disk.",
+        "reasoning": "Olika typer av fysiska lagringsmedier för data."
+      },
+      {
+        "sense_id": "lexin--disk..4",
+        "definition": "en sorts platta mellan ryggradens kotor",
+        "siblings": [
+          {
+            "word": "kota",
+            "source": "candidate"
+          },
+          {
+            "word": "ryggmärg",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: kota (svensk), Ord 2 rot: rygg-märg (svensk). Jag bekräftar att de inte delar stam med disk.",
+        "reasoning": "Anatomiska komponenter i ryggraden."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "drag": {
+    "categories": [
+      {
+        "sense_id": "lexin--drag..1",
+        "definition": "teckning, linje",
+        "siblings": [
+          {
+            "word": "streck",
+            "source": "candidate"
+          },
+          {
+            "word": "skiss",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: streck, Ord 2 rot: skiss. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver resultatet av en linjär rörelse med ett ritverktyg."
+      },
+      {
+        "sense_id": "lexin--drag..2",
+        "definition": "ansiktsuttryck; utseende",
+        "siblings": [
+          {
+            "word": "uppsyn",
+            "source": "candidate"
+          },
+          {
+            "word": "anlete",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: syn, Ord 2 rot: lete. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda refererar till personens yttre ansiktsmässiga framtoning."
+      },
+      {
+        "sense_id": "lexin--drag..3",
+        "definition": "inre egenskap",
+        "siblings": [
+          {
+            "word": "egenhet",
+            "source": "candidate"
+          },
+          {
+            "word": "dygd",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: egen, Ord 2 rot: dygd. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver personlighetsdrag eller inneboende kvaliteter."
+      },
+      {
+        "sense_id": "lexin--drag..7",
+        "definition": "(kall) luftström",
+        "siblings": [
+          {
+            "word": "pust",
+            "source": "candidate"
+          },
+          {
+            "word": "fläkt",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: pust, Ord 2 rot: fläkt. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver små eller lätta rörelser av luft."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--drag..4",
+        "reason": "För nära betydelse 5 (manöver/speldrag)."
+      },
+      {
+        "sense_id": "lexin--drag..5",
+        "reason": "För nära betydelse 4 (manöver/speldrag)."
+      },
+      {
+        "sense_id": "lexin--drag..6",
+        "reason": "Saknar tillräckligt starka och distinkta syskonord i kandidatlistan."
+      },
+      {
+        "sense_id": "lexin--drag..8",
+        "reason": "Mindre vanlig betydelse än de fyra valda."
+      }
+    ]
+  },
+  "drar": {
+    "categories": [
+      {
+        "sense_id": "lexin--drar..6",
+        "definition": "ritar, tecknar (2)",
+        "siblings": [
+          {
+            "word": "teckna",
+            "source": "candidate"
+          },
+          {
+            "word": "skissa",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: teckn-, Ord 2 rot: skiss-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om den konstnärliga handlingen att skapa en bild med linjer."
+      },
+      {
+        "sense_id": "lexin--drar..8",
+        "definition": "förbrukar, behöver",
+        "siblings": [
+          {
+            "word": "konsumera",
+            "source": "candidate"
+          },
+          {
+            "word": "behöva",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: konsum-, Ord 2 rot: behöv-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om resursförbrukning, t.ex. att en bil drar mycket bensin."
+      },
+      {
+        "sense_id": "lexin--drar..7",
+        "definition": "blåser, fläktar",
+        "siblings": [
+          {
+            "word": "blåsa",
+            "source": "candidate"
+          },
+          {
+            "word": "fläkta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: blås-, Ord 2 rot: fläkt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om luftströmmar, t.ex. att det drar från ett fönster."
+      },
+      {
+        "sense_id": "lexin--drar..2",
+        "definition": "släpar, bogserar",
+        "siblings": [
+          {
+            "word": "bogsera",
+            "source": "candidate"
+          },
+          {
+            "word": "hasa",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: bogser-, Ord 2 rot: has-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om den fysiska handlingen att flytta något tungt genom att släpa det."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--drar..1",
+        "reason": "För lik betydelse 2 (fysisk dragning)."
+      },
+      {
+        "sense_id": "lexin--drar..3",
+        "reason": "För generell rörelse, överlappar med betydelse 4."
+      },
+      {
+        "sense_id": "lexin--drar..4",
+        "reason": "Intressant, men jag prioriterade de fyra mest distinkta domänerna ovan."
+      },
+      {
+        "sense_id": "lexin--drar..5",
+        "reason": "Saknar tillräckligt starka och unika syskonord i kandidatlistan jämfört med övriga."
+      }
+    ]
+  },
+  "dryg": {
+    "categories": [
+      {
+        "sense_id": "lexin--dryg..1",
+        "definition": "riklig, rundlig (om tid, mått och vikt)",
+        "siblings": [
+          {
+            "word": "ymnig",
+            "source": "candidate"
+          },
+          {
+            "word": "rikhaltig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ymn-, Ord 2 rot: rik-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver ett överflöd eller en riklig mängd."
+      },
+      {
+        "sense_id": "lexin--dryg..2",
+        "definition": "som räcker länge",
+        "siblings": [
+          {
+            "word": "långvarig",
+            "source": "candidate"
+          },
+          {
+            "word": "ihållande",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: lång-, Ord 2 rot: håll-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver något som varar eller sträcker sig över tid."
+      },
+      {
+        "sense_id": "lexin--dryg..3",
+        "definition": "besvärlig, betungande",
+        "siblings": [
+          {
+            "word": "jobbig",
+            "source": "candidate"
+          },
+          {
+            "word": "knivig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: jobb-, Ord 2 rot: kniv-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver något som är svårt eller ansträngande att hantera."
+      },
+      {
+        "sense_id": "lexin--dryg..4",
+        "definition": "högfärdig, mallig",
+        "siblings": [
+          {
+            "word": "uppblåst",
+            "source": "candidate"
+          },
+          {
+            "word": "kaxig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: blås-, Ord 2 rot: kax-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver en arrogant eller överlägsen personlighet."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "element": {
+    "categories": [
+      {
+        "sense_id": "lexin--element..1",
+        "definition": "omgivning",
+        "siblings": [
+          {
+            "word": "miljö",
+            "source": "candidate"
+          },
+          {
+            "word": "omvärld",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: miljö, Ord 2 rot: värld. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver den omgivande miljön eller kontexten man befinner sig i."
+      },
+      {
+        "sense_id": "lexin--element..2",
+        "definition": "apparat som ger värme (särskilt inomhus)",
+        "siblings": [
+          {
+            "word": "radiator",
+            "source": "candidate"
+          },
+          {
+            "word": "värmare",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: radiator, Ord 2 rot: värme. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fysiska anordningar för uppvärmning av rum."
+      },
+      {
+        "sense_id": "lexin--element..3",
+        "definition": "del, beståndsdel",
+        "siblings": [
+          {
+            "word": "ingrediens",
+            "source": "candidate"
+          },
+          {
+            "word": "inslag",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ingrediens, Ord 2 rot: slag. Jag bekräftar att de inte delar stam.",
+        "reasoning": "En enskild del som utgör en större helhet."
+      },
+      {
+        "sense_id": "lexin--element..4",
+        "definition": "person med vissa (ofta negativa) egenskaper",
+        "siblings": [
+          {
+            "word": "karaktär",
+            "source": "candidate"
+          },
+          {
+            "word": "figur",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: karaktär, Ord 2 rot: figur. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en person som en typ eller personlighet."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "falsk": {
+    "categories": [
+      {
+        "sense_id": "lexin--falsk..1",
+        "definition": "inte sann, oriktig",
+        "siblings": [
+          {
+            "word": "osann",
+            "source": "candidate"
+          },
+          {
+            "word": "felaktig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sann, Ord 2 rot: fel. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver information som saknar sanning eller är felaktig."
+      },
+      {
+        "sense_id": "lexin--falsk..2",
+        "definition": "inte ärlig, opålitlig",
+        "siblings": [
+          {
+            "word": "lömsk",
+            "source": "candidate"
+          },
+          {
+            "word": "oärlig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: lömsk, Ord 2 rot: ärlig. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en personlig egenskap av svekfullhet eller brist på heder."
+      },
+      {
+        "sense_id": "lexin--falsk..3",
+        "definition": "inte äkta, förfalskad",
+        "siblings": [
+          {
+            "word": "oäkta",
+            "source": "candidate"
+          },
+          {
+            "word": "artificiell",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: äkta, Ord 2 rot: artificiell. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver objekt som inte är genuina eller naturliga."
+      },
+      {
+        "sense_id": "lexin--falsk..4",
+        "definition": "med felaktig ton",
+        "siblings": [
+          {
+            "word": "sur",
+            "source": "suggested"
+          },
+          {
+            "word": "disharmonisk",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sur, Ord 2 rot: harmoni. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver ljud eller sång som inte träffar rätt ton."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "figur": {
+    "categories": [
+      {
+        "sense_id": "lexin--figur..1",
+        "definition": "gestalt, kroppsform",
+        "siblings": [
+          {
+            "word": "fysik",
+            "source": "candidate"
+          },
+          {
+            "word": "kroppsbyggnad",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: fys- (grekiska), Ord 2 rot: kropp- (germanska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda orden beskriver personens fysiska form och utseende."
+      },
+      {
+        "sense_id": "lexin--figur..2",
+        "definition": "personlighet, karaktär (3)",
+        "siblings": [
+          {
+            "word": "personlighet",
+            "source": "candidate"
+          },
+          {
+            "word": "kynne",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: person- (latin), Ord 2 rot: kynn- (germanska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda orden refererar till en individs inneboende karaktär eller personliga egenskaper."
+      },
+      {
+        "sense_id": "lexin--figur..3",
+        "definition": "pjäs (t.ex. i schack)",
+        "siblings": [
+          {
+            "word": "bonde",
+            "source": "candidate"
+          },
+          {
+            "word": "löpare",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: bond- (germanska), Ord 2 rot: löp- (germanska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är specifika typer av schackfigurer/pjäser."
+      },
+      {
+        "sense_id": "lexin--figur..4",
+        "definition": "grafisk illustration, bild (i text)",
+        "siblings": [
+          {
+            "word": "illustration",
+            "source": "candidate"
+          },
+          {
+            "word": "diagram",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: illustr- (latin), Ord 2 rot: dia-gram- (grekiska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är former av visuella representationer eller figurer i ett dokument."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "fin": {
+    "categories": [
+      {
+        "sense_id": "lexin--fin..1",
+        "definition": "snygg, vacker",
+        "siblings": [
+          {
+            "word": "tjusig",
+            "source": "candidate"
+          },
+          {
+            "word": "stilig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: tjus-, Ord 2 rot: stil-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på visuell elegans och attraktionskraft."
+      },
+      {
+        "sense_id": "lexin--fin..3",
+        "definition": "tunn, smal",
+        "siblings": [
+          {
+            "word": "slank",
+            "source": "candidate"
+          },
+          {
+            "word": "spenslig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: slank-, Ord 2 rot: spens-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysiska proportioner och smalhet."
+      },
+      {
+        "sense_id": "lexin--fin..4",
+        "definition": "som är i små korn eller bitar",
+        "siblings": [
+          {
+            "word": "pulveriserad",
+            "source": "suggested"
+          },
+          {
+            "word": "mald",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: pulver-, Ord 2 rot: mal-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver materialets konsistens och granularitet."
+      },
+      {
+        "sense_id": "lexin--fin..5",
+        "definition": "diskret, subtil",
+        "siblings": [
+          {
+            "word": "sober",
+            "source": "candidate"
+          },
+          {
+            "word": "lågmäld",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sob-, Ord 2 rot: låg-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver ett återhållsamt och smakfullt beteende eller uttryck."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--fin..2",
+        "reason": "För nära betydelse 1; i dagligt tal används 'fin' ofta synonymt för både estetisk skönhet och allmän kvalitet/bra."
+      }
+    ]
+  },
+  "fäller": {
+    "categories": [
+      {
+        "sense_id": "lexin--fäller..1",
+        "definition": "slår omkull, får något att falla",
+        "siblings": [
+          {
+            "word": "välta",
+            "source": "candidate"
+          },
+          {
+            "word": "stjälpa",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: vält, Ord 2 rot: stjälp. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fysisk handling av att få något att falla omkull."
+      },
+      {
+        "sense_id": "lexin--fäller..3",
+        "definition": "tvingar att avgå",
+        "siblings": [
+          {
+            "word": "störta",
+            "source": "candidate"
+          },
+          {
+            "word": "avsätta",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: stört, Ord 2 rot: sätt. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Politisk handling av att avlägsna någon från makten."
+      },
+      {
+        "sense_id": "lexin--fäller..2",
+        "definition": "dödar",
+        "siblings": [
+          {
+            "word": "dräpa",
+            "source": "candidate"
+          },
+          {
+            "word": "likvidera",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: dräp, Ord 2 rot: likvid. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Att avsluta någons liv (ofta använt om jakt eller lönnmord)."
+      },
+      {
+        "sense_id": "lexin--fäller..5",
+        "definition": "yttrar, säger",
+        "siblings": [
+          {
+            "word": "yttra",
+            "source": "suggested"
+          },
+          {
+            "word": "säga",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: yttra, Ord 2 rot: säg. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Att uttrycka något kortfattat, som en kommentar."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--fäller..4",
+        "reason": "Svårt att hitta två syskonord utan gemensam rot (döma/utdöma delar stam)."
+      },
+      {
+        "sense_id": "lexin--fäller..6",
+        "reason": "Mindre tematisk synergi med de övriga valda kategorierna."
+      }
+    ]
+  },
+  "färg": {
+    "categories": [
+      {
+        "sense_id": "lexin--färg..1",
+        "definition": "ett slags synintryck (rött, grönt etc.); kulör, nyans",
+        "siblings": [
+          {
+            "word": "nyans",
+            "source": "suggested"
+          },
+          {
+            "word": "kulör",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: nyans, Ord 2 rot: kulör. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver den visuella egenskapen av en färg."
+      },
+      {
+        "sense_id": "lexin--färg..2",
+        "definition": "åsiktsriktning",
+        "siblings": [
+          {
+            "word": "strömning",
+            "source": "candidate"
+          },
+          {
+            "word": "syn",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ström, Ord 2 rot: syn. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en ideologisk eller åsiktsmässig inriktning."
+      },
+      {
+        "sense_id": "lexin--färg..3",
+        "definition": "positiv stämning",
+        "siblings": [
+          {
+            "word": "drag",
+            "source": "candidate"
+          },
+          {
+            "word": "anda",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: drag, Ord 2 rot: anda. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver livfullhet eller en specifik atmosfär."
+      },
+      {
+        "sense_id": "lexin--färg..5",
+        "definition": "en av serierna hjärter, spader, ruter och klöver i en kortlek",
+        "siblings": [
+          {
+            "word": "hjärter",
+            "source": "candidate"
+          },
+          {
+            "word": "spader",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: hjärta, Ord 2 rot: spader. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver kategorierna i en standardkortlek."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--färg..4",
+        "reason": "Delar domän med betydelse 1 (visuell färg/målarfärg), vilket bryter mot regeln om semantisk separation."
+      }
+    ]
+  },
+  "följer": {
+    "categories": [
+      {
+        "sense_id": "lexin--följer..2",
+        "definition": "efterträder",
+        "siblings": [
+          {
+            "word": "ersätta",
+            "source": "candidate"
+          },
+          {
+            "word": "avlösa",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sätt, Ord 2 rot: lös. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om att ta över någons position eller roll."
+      },
+      {
+        "sense_id": "lexin--följer..3",
+        "definition": "gör sällskap med",
+        "siblings": [
+          {
+            "word": "ledsaga",
+            "source": "candidate"
+          },
+          {
+            "word": "sällskapa",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: led/sag, Ord 2 rot: sällskap. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om fysisk närvaro och socialt sällskap."
+      },
+      {
+        "sense_id": "lexin--följer..4",
+        "definition": "rättar sig efter, lyder (1)",
+        "siblings": [
+          {
+            "word": "hörsamma",
+            "source": "candidate"
+          },
+          {
+            "word": "lyda",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: hör/samm, Ord 2 rot: lyd. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om underordning och efterlevnad av regler eller order."
+      },
+      {
+        "sense_id": "lexin--följer..5",
+        "definition": "observerar, hänger med i",
+        "siblings": [
+          {
+            "word": "iaktta",
+            "source": "candidate"
+          },
+          {
+            "word": "uppmärksamma",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: akt, Ord 2 rot: märk. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om kognitivt fokus och visuell observation."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--följer..1",
+        "reason": "För lik betydelse 2 och 3; fungerar som en övergripande term snarare än en distinkt kategori."
+      }
+    ]
+  },
+  "grov": {
+    "categories": [
+      {
+        "sense_id": "lexin--grov..1",
+        "definition": "tjock, kraftig, bastant",
+        "siblings": [
+          {
+            "word": "mastig",
+            "source": "candidate"
+          },
+          {
+            "word": "bastant",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: mast-, Ord 2 rot: bast-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysisk tyngd och volym."
+      },
+      {
+        "sense_id": "lexin--grov..2",
+        "definition": "ojämn, skrovlig; inte bearbetad (i detalj)",
+        "siblings": [
+          {
+            "word": "skrovlig",
+            "source": "candidate"
+          },
+          {
+            "word": "sträv",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: skrov-, Ord 2 rot: sträv-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en ojämn eller rå yta."
+      },
+      {
+        "sense_id": "lexin--grov..3",
+        "definition": "ohyfsad, rå",
+        "siblings": [
+          {
+            "word": "plump",
+            "source": "candidate"
+          },
+          {
+            "word": "oborstad",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: plump-, Ord 2 rot: borst-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver brist på sociala manér."
+      },
+      {
+        "sense_id": "lexin--grov..4",
+        "definition": "svår (2), allvarlig (2)",
+        "siblings": [
+          {
+            "word": "grav",
+            "source": "candidate"
+          },
+          {
+            "word": "svår",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: grav-, Ord 2 rot: svår-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver hög grad av allvar eller intensitet."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "går": {
+    "categories": [
+      {
+        "sense_id": "lexin--går..2",
+        "definition": "förflyttar sig till fots (utan att springa)",
+        "siblings": [
+          {
+            "word": "vandra",
+            "source": "candidate"
+          },
+          {
+            "word": "promenera",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: vandra, Ord 2 rot: promenera. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver långsam förflyttning till fots."
+      },
+      {
+        "sense_id": "lexin--går..3",
+        "definition": "avlägsnar sig",
+        "siblings": [
+          {
+            "word": "lämna",
+            "source": "candidate"
+          },
+          {
+            "word": "smita",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: lämna, Ord 2 rot: smita. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver handlingen att lämna en plats."
+      },
+      {
+        "sense_id": "lexin--går..6",
+        "definition": "spelas",
+        "siblings": [
+          {
+            "word": "visas",
+            "source": "suggested"
+          },
+          {
+            "word": "uppförs",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: visa, Ord 2 rot: uppföra. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver att en föreställning eller film är aktuell/spelas."
+      },
+      {
+        "sense_id": "lexin--går..7",
+        "definition": "får plats, ryms",
+        "siblings": [
+          {
+            "word": "ryms",
+            "source": "suggested"
+          },
+          {
+            "word": "passar",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: rymma, Ord 2 rot: passa. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver spatial kapacitet och passform."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--går..4",
+        "reason": "För lik betydelse 2 (avlägsnar sig/avgår)."
+      },
+      {
+        "sense_id": "lexin--går..5",
+        "reason": "Betydelsen 'fungerar' var för abstrakt och saknade tillräckligt distinkta syskonord."
+      }
+    ]
+  },
+  "håller": {
+    "categories": [
+      {
+        "sense_id": "lexin--håller..6",
+        "definition": "utför; anordnar",
+        "siblings": [
+          {
+            "word": "arrangera",
+            "source": "candidate"
+          },
+          {
+            "word": "organisera",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: arrang-, Ord 2 rot: organis-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om att planera och genomföra ett event eller möte."
+      },
+      {
+        "sense_id": "lexin--håller..1",
+        "definition": "har i handen, griper, fattar",
+        "siblings": [
+          {
+            "word": "gripa",
+            "source": "candidate"
+          },
+          {
+            "word": "fatta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: grip-, Ord 2 rot: fatt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på den fysiska handlingen att ta tag i något."
+      },
+      {
+        "sense_id": "lexin--håller..2",
+        "definition": "hindrar från att röra sig",
+        "siblings": [
+          {
+            "word": "blockera",
+            "source": "candidate"
+          },
+          {
+            "word": "hejda",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: block-, Ord 2 rot: hejd-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på att stoppa eller förhindra rörelse/passage."
+      },
+      {
+        "sense_id": "lexin--håller..3",
+        "definition": "bibehåller, bevarar",
+        "siblings": [
+          {
+            "word": "bevara",
+            "source": "candidate"
+          },
+          {
+            "word": "konservera",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: bevar-, Ord 2 rot: konserver-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Handlar om att se till att något finns kvar i sitt nuvarande skick."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--håller..4",
+        "reason": "Kräver adjektiv som syskonord (t.ex. slitstark), vilket bryter mot regeln om att matcha pivotordets ordklass (verb)."
+      },
+      {
+        "sense_id": "lexin--håller..5",
+        "reason": "För semantiskt nära betydelse 2 (båda rör att rörelsen upphör)."
+      }
+    ]
+  },
+  "hård": {
+    "categories": [
+      {
+        "sense_id": "lexin--hård..1",
+        "definition": "som inte ger efter för tryck eller böjning",
+        "siblings": [
+          {
+            "word": "fast",
+            "source": "suggested"
+          },
+          {
+            "word": "stel",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: fast, Ord 2 rot: stel. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysiska materialegenskaper (motsats till mjuk)."
+      },
+      {
+        "sense_id": "lexin--hård..2",
+        "definition": "okänslig, sträng",
+        "siblings": [
+          {
+            "word": "kall",
+            "source": "candidate"
+          },
+          {
+            "word": "strikt",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: kall, Ord 2 rot: strikt. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver personlighetsdrag eller bemötande."
+      },
+      {
+        "sense_id": "lexin--hård..3",
+        "definition": "intensiv, påfrestande",
+        "siblings": [
+          {
+            "word": "pressande",
+            "source": "candidate"
+          },
+          {
+            "word": "mödosam",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: press, Ord 2 rot: möda. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver graden av ansträngning eller stress i en situation."
+      },
+      {
+        "sense_id": "lexin--hård..4",
+        "definition": "kraftig",
+        "siblings": [
+          {
+            "word": "massiv",
+            "source": "candidate"
+          },
+          {
+            "word": "rejäl",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: mass, Ord 2 rot: rejäl. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysisk robusthet, storlek eller kraft."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "jämn": {
+    "categories": [
+      {
+        "sense_id": "lexin--jämn..1",
+        "definition": "plan, slät",
+        "siblings": [
+          {
+            "word": "platt",
+            "source": "candidate"
+          },
+          {
+            "word": "flack",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: platt, Ord 2 rot: flack. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en fysisk yta utan ojämnheter."
+      },
+      {
+        "sense_id": "lexin--jämn..2",
+        "definition": "som fördelar sig regelbundet; hela tiden lika stor",
+        "siblings": [
+          {
+            "word": "regelbunden",
+            "source": "candidate"
+          },
+          {
+            "word": "konstant",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: regel, Ord 2 rot: konstant. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver ett jämnt tempo eller en stabilt återkommande händelse."
+      },
+      {
+        "sense_id": "lexin--jämn..3",
+        "definition": "som inte domineras av någon part; som väger lika",
+        "siblings": [
+          {
+            "word": "likvärdig",
+            "source": "suggested"
+          },
+          {
+            "word": "balanserad",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: lik, Ord 2 rot: balans. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en situation av jämvikt ellert utjämning mellan två parter."
+      },
+      {
+        "sense_id": "lexin--jämn..5",
+        "definition": "exakt, precis",
+        "siblings": [
+          {
+            "word": "precis",
+            "source": "candidate"
+          },
+          {
+            "word": "exakt",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: precis, Ord 2 rot: exakt. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskrivert precision i tid eller mått."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--jämn..4",
+        "reason": "Saknar tillräckligt många starka adjektivsynonymer som inte är antonymer (t.ex. udda)."
+      }
+    ]
+  },
+  "klar": {
+    "categories": [
+      {
+        "sense_id": "lexin--klar..1",
+        "definition": "ljus, lysande, genomskinlig",
+        "siblings": [
+          {
+            "word": "transparent",
+            "source": "candidate"
+          },
+          {
+            "word": "ljus",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: transparent (latin), Ord 2 rot: ljus (germanska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysiska egenskaper av ljusgenomsläpplighet och luminans."
+      },
+      {
+        "sense_id": "lexin--klar..2",
+        "definition": "lätt att förstå, tydlig",
+        "siblings": [
+          {
+            "word": "åskådlig",
+            "source": "candidate"
+          },
+          {
+            "word": "begriplig",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: skåda (svenska), Ord 2 rot: gripa (svenska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver kognitiv tillgänglighet och hur lätt något är att förstå."
+      },
+      {
+        "sense_id": "lexin--klar..3",
+        "definition": "tydlig, stor",
+        "siblings": [
+          {
+            "word": "enorm",
+            "source": "candidate"
+          },
+          {
+            "word": "rejäl",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: enormis (latin), Ord 2 rot: réel (franska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver magnitud och betydande skillnad/storlek."
+      },
+      {
+        "sense_id": "lexin--klar..4",
+        "definition": "färdig (1)",
+        "siblings": [
+          {
+            "word": "redo",
+            "source": "candidate"
+          },
+          {
+            "word": "fullbordad",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ready (germanska), Ord 2 rot: borda (svenska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver statusen av att vara färdig eller redo för start."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "leder": {
+    "categories": [
+      {
+        "sense_id": "lexin--leder..3",
+        "definition": "är ledare (1) eller chef för; sköter, styr (2)",
+        "siblings": [
+          {
+            "word": "styra",
+            "source": "candidate"
+          },
+          {
+            "word": "basa",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: styr, Ord 2 rot: bas. Jag bekräftar att de inte delar stam med leder.",
+        "reasoning": "Beskriver administrativt eller operativt ledarskap."
+      },
+      {
+        "sense_id": "lexin--leder..2",
+        "definition": "släpper fram, överför",
+        "siblings": [
+          {
+            "word": "transmitterar",
+            "source": "suggested"
+          },
+          {
+            "word": "kanaliserar",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: transmitter, Ord 2 rot: kanal. Jag bekräftar att de inte delar stam med leder.",
+        "reasoning": "Beskriver fysisk eller teknisk överföring av energi/vätska."
+      },
+      {
+        "sense_id": "lexin--leder..1",
+        "definition": "för (till ett mål)",
+        "siblings": [
+          {
+            "word": "resulterar",
+            "source": "suggested"
+          },
+          {
+            "word": "bidrar",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: result, Ord 2 rot: bidrag. Jag bekräftar att de inte delar stam med leder.",
+        "reasoning": "Beskriver kausalitet och konsekvens."
+      },
+      {
+        "sense_id": "lexin--leder..4",
+        "definition": "ligger främst",
+        "siblings": [
+          {
+            "word": "toppar",
+            "source": "suggested"
+          },
+          {
+            "word": "dominerar",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: topp, Ord 2 rot: domin. Jag bekräftar att de inte delar stam med leder.",
+        "reasoning": "Beskriver en position i spetsen av en tävling eller ranking."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "linje": {
+    "categories": [
+      {
+        "sense_id": "lexin--linje..1",
+        "definition": "figur med utsträckning åt bara ett håll",
+        "siblings": [
+          {
+            "word": "diagonal",
+            "source": "candidate"
+          },
+          {
+            "word": "stråle",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: diagonal (grekiska diagōnios), Ord 2 rot: stråle (fornnordiska strauli). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är geometriska begrepp för en linjär figur."
+      },
+      {
+        "sense_id": "lexin--linje..2",
+        "definition": "sträcka som trafikeras med allmänna kommunikationer",
+        "siblings": [
+          {
+            "word": "led",
+            "source": "candidate"
+          },
+          {
+            "word": "rutt",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: led (fornnordiska leið), Ord 2 rot: rutt (franska route). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en väg eller sträckning för transport."
+      },
+      {
+        "sense_id": "lexin--linje..3",
+        "definition": "kurs (1), inriktning",
+        "siblings": [
+          {
+            "word": "inriktning",
+            "source": "candidate"
+          },
+          {
+            "word": "orientering",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: rikta (svenska), Ord 2 rot: orientare (latin). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en abstrakt kurs eller strategisk hållning."
+      },
+      {
+        "sense_id": "lexin--linje..4",
+        "definition": "uppställning i en rad (på bredden)",
+        "siblings": [
+          {
+            "word": "rad",
+            "source": "candidate"
+          },
+          {
+            "word": "fil",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: rad (fornhögtyska rada), Ord 2 rot: fil (franska file). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en fysisk uppställning av objekt eller personer."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "modell": {
+    "categories": [
+      {
+        "sense_id": "lexin--modell..1",
+        "definition": "förebild, exempel",
+        "siblings": [
+          {
+            "word": "ideal",
+            "source": "candidate"
+          },
+          {
+            "word": "mönster",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: latin 'idealis', Ord 2 rot: germansk 'muster'. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver en perfekt standard eller person som man efterliknar."
+      },
+      {
+        "sense_id": "lexin--modell..2",
+        "definition": "kopia i liten skala",
+        "siblings": [
+          {
+            "word": "avbild",
+            "source": "candidate"
+          },
+          {
+            "word": "miniatyr",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: svensk 'bild', Ord 2 rot: latin 'minium'. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en fysisk representation av något i reducerad storlek."
+      },
+      {
+        "sense_id": "lexin--modell..3",
+        "definition": "(vanligt) utförande av en viss vara (t.ex. bilar, maskiner, kläder)",
+        "siblings": [
+          {
+            "word": "version",
+            "source": "candidate"
+          },
+          {
+            "word": "typ",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: latin 'versio', Ord 2 rot: grekiska 'typos'. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Avser en specifik variant eller design av en produkt."
+      },
+      {
+        "sense_id": "lexin--modell..4",
+        "definition": "person (särskilt kvinna) som poserar eller gör reklam för något",
+        "siblings": [
+          {
+            "word": "mannekäng",
+            "source": "candidate"
+          },
+          {
+            "word": "posör",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: franska 'mannequin', Ord 2 rot: franska 'poser'. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en person vars funktion är att visa upp kläder eller inta poser."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "mål": {
+    "categories": [
+      {
+        "sense_id": "lexin--mål..2",
+        "definition": "ändamål, syfte",
+        "siblings": [
+          {
+            "word": "syfte",
+            "source": "candidate"
+          },
+          {
+            "word": "avsikt",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: syft-, Ord 2 rot: avsikt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Abstrakt mål i betydelsen intention eller objektiv."
+      },
+      {
+        "sense_id": "lexin--mål..5",
+        "definition": "den mängd mat man äter vid ett visst tillfälle, måltid",
+        "siblings": [
+          {
+            "word": "portion",
+            "source": "candidate"
+          },
+          {
+            "word": "mat",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: portion-, Ord 2 rot: mat-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Konkret mål i betydelsen föda/måltid."
+      },
+      {
+        "sense_id": "lexin--mål..6",
+        "definition": "rättegång, process",
+        "siblings": [
+          {
+            "word": "process",
+            "source": "candidate"
+          },
+          {
+            "word": "rättegång",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: process-, Ord 2 rot: rätt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Juridiskt mål i betydelsen domstolsprocess."
+      },
+      {
+        "sense_id": "lexin--mål..7",
+        "definition": "förmåga att tala; språk",
+        "siblings": [
+          {
+            "word": "tal",
+            "source": "candidate"
+          },
+          {
+            "word": "språk",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: tal-, Ord 2 rot: språk-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Lingvistiskt mål i betydelsen talspråk eller förmåga."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--mål..1",
+        "reason": "För semantiskt nära betydelse 2 (ändamål/riktpunkt)."
+      },
+      {
+        "sense_id": "lexin--mål..3",
+        "reason": "Delar domän med betydelse 4; saknar starka, oberoende syskonord."
+      },
+      {
+        "sense_id": "lexin--mål..4",
+        "reason": "Delar domän med betydelse 3 (sport)."
+      }
+    ]
+  },
+  "pjäs": {
+    "categories": [
+      {
+        "sense_id": "lexin--pjäs..1",
+        "definition": "föremål som är uppställt som prydnad",
+        "siblings": [
+          {
+            "word": "dekoration",
+            "source": "candidate"
+          },
+          {
+            "word": "ornament",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: dekor-, Ord 2 rot: ornament-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är generella termer för prydnadsföremål."
+      },
+      {
+        "sense_id": "lexin--pjäs..2",
+        "definition": "teaterstycke, skådespel",
+        "siblings": [
+          {
+            "word": "drama",
+            "source": "candidate"
+          },
+          {
+            "word": "komedi",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: dram-, Ord 2 rot: komed-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är typer av sceniska verk/pjäser."
+      },
+      {
+        "sense_id": "lexin--pjäs..3",
+        "definition": "figur (2) som man flyttar på ett spelbräde (särskilt i schack)",
+        "siblings": [
+          {
+            "word": "figur",
+            "source": "candidate"
+          },
+          {
+            "word": "bricka",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: figur-, Ord 2 rot: brick-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda beskriver det fysiska objektet man flyttar i ett brädspel."
+      },
+      {
+        "sense_id": "lexin--pjäs..4",
+        "definition": "tyngre eldvapen",
+        "siblings": [
+          {
+            "word": "artilleri",
+            "source": "candidate"
+          },
+          {
+            "word": "kanon",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: artiller-, Ord 2 rot: kanon-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda refererar till tunga militära eldvapen."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "plats": {
+    "categories": [
+      {
+        "sense_id": "lexin--plats..1",
+        "definition": "område med ett bestämt läge",
+        "siblings": [
+          {
+            "word": "region",
+            "source": "candidate"
+          },
+          {
+            "word": "fläck",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: region (latin), Ord 2 rot: fläck (germansk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver ett geografiskt område eller en specifik punkt på en karta."
+      },
+      {
+        "sense_id": "lexin--plats..2",
+        "definition": "ledigt utrymme",
+        "siblings": [
+          {
+            "word": "rum",
+            "source": "candidate"
+          },
+          {
+            "word": "yta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: rum, Ord 2 rot: yta. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysiskt utrymme eller kapacitet (t.ex. 'plats i bilen')."
+      },
+      {
+        "sense_id": "lexin--plats..3",
+        "definition": "anställning",
+        "siblings": [
+          {
+            "word": "jobb",
+            "source": "candidate"
+          },
+          {
+            "word": "tjänst",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: jobb (engelska), Ord 2 rot: tjänst (germansk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en yrkesmässig position eller anställning."
+      },
+      {
+        "sense_id": "lexin--plats..4",
+        "definition": "placering i tävling",
+        "siblings": [
+          {
+            "word": "ställning",
+            "source": "candidate"
+          },
+          {
+            "word": "rangordning",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: ställ (ställa), Ord 2 rot: rang/ordna. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver resultat eller position i en hierarki/tävling."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "post": {
+    "categories": [
+      {
+        "sense_id": "lexin--post..3",
+        "definition": "belopp (i räkenskap e.d.)",
+        "siblings": [
+          {
+            "word": "saldo",
+            "source": "candidate"
+          },
+          {
+            "word": "kredit",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: saldo, Ord 2 rot: kredit. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Termer för belopp och poster i ekonomisk bokföring."
+      },
+      {
+        "sense_id": "lexin--post..4",
+        "definition": "lodrät del av karm (till dörr eller fönster)",
+        "siblings": [
+          {
+            "word": "regel",
+            "source": "candidate"
+          },
+          {
+            "word": "stolpe",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: regel, Ord 2 rot: stolpe. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Lodräta bärande eller strukturella element i byggnadskonstruktion."
+      },
+      {
+        "sense_id": "lexin--post..5",
+        "definition": "(högre) tjänst (1)",
+        "siblings": [
+          {
+            "word": "befattning",
+            "source": "candidate"
+          },
+          {
+            "word": "ämbete",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: befattning, Ord 2 rot: ämbete. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Formella titlar eller positioner inom ett yrke eller organisation."
+      },
+      {
+        "sense_id": "lexin--post..6",
+        "definition": "vakt (1)",
+        "siblings": [
+          {
+            "word": "plit",
+            "source": "candidate"
+          },
+          {
+            "word": "garde",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: plit, Ord 2 rot: garde. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Olika typer av vaktpersoner eller vaktenheter."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "program": {
+    "categories": [
+      {
+        "sense_id": "lexin--program..5",
+        "definition": "instruktion för en dator",
+        "siblings": [
+          {
+            "word": "mjukvara",
+            "source": "candidate"
+          },
+          {
+            "word": "applikation",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: mjuk-vara, Ord 2 rot: applikation. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda är generella termer för datorprogram."
+      },
+      {
+        "sense_id": "lexin--program..6",
+        "definition": "inriktning av utbildning (särskilt på gymnasiet och universitetet)",
+        "siblings": [
+          {
+            "word": "linje",
+            "source": "candidate"
+          },
+          {
+            "word": "inriktning",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: linje, Ord 2 rot: rikta. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Vanliga termer för olika utbildningsspår."
+      },
+      {
+        "sense_id": "lexin--program..3",
+        "definition": "enskild sändning i radio eller tv",
+        "siblings": [
+          {
+            "word": "utsändning",
+            "source": "candidate"
+          },
+          {
+            "word": "magasin",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sända, Ord 2 rot: magasin. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver antingen själva akten eller en specifik typ av programformat."
+      },
+      {
+        "sense_id": "lexin--program..2",
+        "definition": "tidsplan, schema",
+        "siblings": [
+          {
+            "word": "schema",
+            "source": "candidate"
+          },
+          {
+            "word": "tidtabell",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: schema, Ord 2 rot: tid-tabell. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Synonymer för en tidsmässig uppställning av händelser."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--program..1",
+        "reason": "För lik betydelse 2 (båda rör planering/struktur)."
+      },
+      {
+        "sense_id": "lexin--program..4",
+        "reason": "För lik betydelse 3 (båda rör radio/tv-media)."
+      }
+    ]
+  },
+  "rör": {
+    "categories": [
+      {
+        "sense_id": "lexin--rör..4",
+        "definition": "berör, nuddar",
+        "siblings": [
+          {
+            "word": "nudda",
+            "source": "candidate"
+          },
+          {
+            "word": "tangera",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: nudda, Ord 2 rot: tangera. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fysisk kontakt i betydelsen att lätt vidröra något."
+      },
+      {
+        "sense_id": "lexin--rör..5",
+        "definition": "vispar",
+        "siblings": [
+          {
+            "word": "vispa",
+            "source": "candidate"
+          },
+          {
+            "word": "blanda",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: vispa, Ord 2 rot: blanda. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Kulinarisk handling av att röra om eller blanda ingredienser."
+      },
+      {
+        "sense_id": "lexin--rör..6",
+        "definition": "berör känslomässigt, griper",
+        "siblings": [
+          {
+            "word": "gripa",
+            "source": "candidate"
+          },
+          {
+            "word": "frappera",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: gripa, Ord 2 rot: frappera. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Att väcka starka känslor eller bli emotionellt påverkad."
+      },
+      {
+        "sense_id": "lexin--rör..7",
+        "definition": "handlar om, gäller",
+        "siblings": [
+          {
+            "word": "gälla",
+            "source": "candidate"
+          },
+          {
+            "word": "omfatta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: gälla, Ord 2 rot: omfatta. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Att ha ett visst ämne som fokus eller omfattning."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--rör..8",
+        "reason": "För semantiskt nära betydelse 4 (handlar om/angår)."
+      }
+    ]
+  },
+  "rörelse": {
+    "categories": [
+      {
+        "sense_id": "lexin--rörelse..1",
+        "definition": "förflyttning",
+        "siblings": [
+          {
+            "word": "transport",
+            "source": "candidate"
+          },
+          {
+            "word": "förskjutning",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: transport (lat. transportare), Ord 2 rot: skjut (svensk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på den fysiska aspekten av att flytta något från en punkt till en annan."
+      },
+      {
+        "sense_id": "lexin--rörelse..3",
+        "definition": "företag (1)",
+        "siblings": [
+          {
+            "word": "firma",
+            "source": "candidate"
+          },
+          {
+            "word": "bolag",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: firma (lat. firmare), Ord 2 rot: bo/lag (svensk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "En helt annan domän (ekonomi) än fysisk rörelse."
+      },
+      {
+        "sense_id": "lexin--rörelse..4",
+        "definition": "grupp människor som samarbetar för ett (ideellt) mål",
+        "siblings": [
+          {
+            "word": "kollektiv",
+            "source": "candidate"
+          },
+          {
+            "word": "organisation",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: kollektiv (lat. collectivus), Ord 2 rot: organ (grek. organon). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en social eller politisk struktur."
+      },
+      {
+        "sense_id": "lexin--rörelse..5",
+        "definition": "stark känsla av ömhet, gripenhet",
+        "siblings": [
+          {
+            "word": "gripenhet",
+            "source": "candidate"
+          },
+          {
+            "word": "patos",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: grip (svensk), Ord 2 rot: pathos (grekisk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "En emotionell betydelse som är helt ortogonal till de övriga."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--rörelse..2",
+        "reason": "För nära Betydelse 1; båda beskriver fysisk kinetik/förflyttning."
+      }
+    ]
+  },
+  "sats": {
+    "categories": [
+      {
+        "sense_id": "lexin--sats..1",
+        "definition": "större del av en mening (som ofta själv kan utgöra en mening)",
+        "siblings": [
+          {
+            "word": "fras",
+            "source": "candidate"
+          },
+          {
+            "word": "ord",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: fras, Ord 2 rot: ord. Jag bekräftar att de inte delar stam med 'sats'.",
+        "reasoning": "Lingvistiska enheter av olika storlek som utgör en text."
+      },
+      {
+        "sense_id": "lexin--sats..3",
+        "definition": "uppsättning av något, omgång (2)",
+        "siblings": [
+          {
+            "word": "set",
+            "source": "candidate"
+          },
+          {
+            "word": "batteri",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: set, Ord 2 rot: batteri. Jag bekräftar att de inte delar stam med 'sats'.",
+        "reasoning": "Betyder en samlad grupp eller uppsättning av föremål/tester."
+      },
+      {
+        "sense_id": "lexin--sats..4",
+        "definition": "bestämd andel",
+        "siblings": [
+          {
+            "word": "kvot",
+            "source": "candidate"
+          },
+          {
+            "word": "tilldelning",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: kvot, Ord 2 rot: till-del. Jag bekräftar att de inte delar stam med 'sats'.",
+        "reasoning": "Beskriver en fastställd mängd eller proportion av något."
+      },
+      {
+        "sense_id": "lexin--sats..5",
+        "definition": "del av ett större musikverk",
+        "siblings": [
+          {
+            "word": "final",
+            "source": "candidate"
+          },
+          {
+            "word": "preludium",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: final, Ord 2 rot: prelud. Jag bekräftar att de inte delar stam med 'sats'.",
+        "reasoning": "Specifika typer av satser/delar i ett musikaliskt verk."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--sats..2",
+        "reason": "Det starkaste syskonordet 'ansats' delar rot med pivotordet 'sats', och övriga kandidater är antingen för generiska eller beskriver resultatet snarare än förberedelsen."
+      }
+    ]
+  },
+  "siktar": {
+    "categories": [
+      {
+        "sense_id": "lexin--siktar..1",
+        "definition": "riktar ett vapen e.d. mot ett mål",
+        "siblings": [
+          {
+            "word": "rikta",
+            "source": "suggested"
+          },
+          {
+            "word": "måtta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: rikt-, Ord 2 rot: mått-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fysisk handling av att linjera ett föremål mot ett mål."
+      },
+      {
+        "sense_id": "lexin--siktar..2",
+        "definition": "inriktar sig på, har som sitt mål",
+        "siblings": [
+          {
+            "word": "avse",
+            "source": "candidate"
+          },
+          {
+            "word": "sträva",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: avse-, Ord 2 rot: sträv-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Abstrakt ambition eller intention."
+      },
+      {
+        "sense_id": "lexin--siktar..3",
+        "definition": "får syn på",
+        "siblings": [
+          {
+            "word": "upptäcka",
+            "source": "candidate"
+          },
+          {
+            "word": "iaktta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: upptäck-, Ord 2 rot: iaktt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Perceptuell handling av att identifiera något med synen."
+      },
+      {
+        "sense_id": "lexin--siktar..4",
+        "definition": "låter passera genom en sikt",
+        "siblings": [
+          {
+            "word": "sila",
+            "source": "candidate"
+          },
+          {
+            "word": "filtrera",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sil-, Ord 2 rot: filtr-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Mekanisk process för att separera partiklar."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "slag": {
+    "categories": [
+      {
+        "sense_id": "lexin--slag..1",
+        "definition": "sort, typ",
+        "siblings": [
+          {
+            "word": "sort",
+            "source": "candidate"
+          },
+          {
+            "word": "typ",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sort (germanskt), Ord 2 rot: typ (grekiska). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Klassificering av objekt eller kategorier."
+      },
+      {
+        "sense_id": "lexin--slag..7",
+        "definition": "kort stund",
+        "siblings": [
+          {
+            "word": "ögonblick",
+            "source": "candidate"
+          },
+          {
+            "word": "stund",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: öga+blick, Ord 2 rot: stund. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Tidsenheter för korta perioder."
+      },
+      {
+        "sense_id": "lexin--slag..4",
+        "definition": "större strid, drabbning",
+        "siblings": [
+          {
+            "word": "batalj",
+            "source": "candidate"
+          },
+          {
+            "word": "dust",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: batalja (franska), Ord 2 rot: dust (germanskt). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Konflikter och militära händelser."
+      },
+      {
+        "sense_id": "lexin--slag..2",
+        "definition": "hård träff på ett föremål, stöt",
+        "siblings": [
+          {
+            "word": "hugg",
+            "source": "candidate"
+          },
+          {
+            "word": "törn",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: hugga, Ord 2 rot: törn. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fysiska impulser och stötar."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--slag..3",
+        "reason": "För semantiskt nära betydelserna för fysisk stöt och strid (metaforisk överlappning)."
+      },
+      {
+        "sense_id": "lexin--slag..5",
+        "reason": "För nischad betydelse med otillräckliga kandidater."
+      },
+      {
+        "sense_id": "lexin--slag..6",
+        "reason": "Saknar tillräckligt många starka syskonord för att bilda en kategori."
+      }
+    ]
+  },
+  "spelar": {
+    "categories": [
+      {
+        "sense_id": "lexin--spelar..1",
+        "definition": "ägnar sig åt spel (sport/spel)",
+        "siblings": [
+          {
+            "word": "sporta",
+            "source": "candidate"
+          },
+          {
+            "word": "idrotta",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: sport, Ord 2 rot: idrott. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda orden beskriver utövandet av fysiska spel eller sporter."
+      },
+      {
+        "sense_id": "lexin--spelar..2",
+        "definition": "uppför en viss teaterpjäs, agerar i en teaterpjäs eller film",
+        "siblings": [
+          {
+            "word": "uppföra",
+            "source": "candidate"
+          },
+          {
+            "word": "agera",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: föra, Ord 2 rot: ag-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver handlingen att framträda i en konstnärlig roll."
+      },
+      {
+        "sense_id": "lexin--spelar..3",
+        "definition": "låtsas",
+        "siblings": [
+          {
+            "word": "låtsa",
+            "source": "candidate"
+          },
+          {
+            "word": "simulera",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: låts, Ord 2 rot: simul-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Båda orden innebär att man ger sken av något som inte är verkligt."
+      },
+      {
+        "sense_id": "lexin--spelar..4",
+        "definition": "framför musik på instrument, musicerar",
+        "siblings": [
+          {
+            "word": "musicera",
+            "source": "candidate"
+          },
+          {
+            "word": "traktera",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: musik, Ord 2 rot: trakt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver handlingen att producera ljud med ett musikinstrument."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "stark": {
+    "categories": [
+      {
+        "sense_id": "lexin--stark..1",
+        "definition": "som har stor styrka, kraftfull (om levande varelser)",
+        "siblings": [
+          {
+            "word": "kraftig",
+            "source": "candidate"
+          },
+          {
+            "word": "robust",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: kraft, Ord 2 rot: robust. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på fysisk konstitution och styrka."
+      },
+      {
+        "sense_id": "lexin--stark..2",
+        "definition": "mäktig; handlingskraftig",
+        "siblings": [
+          {
+            "word": "mäktig",
+            "source": "candidate"
+          },
+          {
+            "word": "inflytelserik",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: makt, Ord 2 rot: influens. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på social och politisk makt snarare än fysisk styrka."
+      },
+      {
+        "sense_id": "lexin--stark..3",
+        "definition": "som intensivt påverkar sinnena",
+        "siblings": [
+          {
+            "word": "skarp",
+            "source": "suggested"
+          },
+          {
+            "word": "intensiv",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: skarp, Ord 2 rot: intensiv. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på sensoriska upplevelser (t.ex. stark doft/smak)."
+      },
+      {
+        "sense_id": "lexin--stark..4",
+        "definition": "slitstark, hållbar",
+        "siblings": [
+          {
+            "word": "tålig",
+            "source": "candidate"
+          },
+          {
+            "word": "hållfast",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: tål, Ord 2 rot: håll. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Fokuserar på materiell resistens ocht hållbarhet."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "ställning": {
+    "categories": [
+      {
+        "sense_id": "lexin--ställning..1",
+        "definition": "sätt att stå eller sitta eller ligga",
+        "siblings": [
+          {
+            "word": "pose",
+            "source": "candidate"
+          },
+          {
+            "word": "hållning",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: pose (latin posa), Ord 2 rot: hållning (svensk hålla). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver kroppens fysiska konfiguration."
+      },
+      {
+        "sense_id": "lexin--ställning..2",
+        "definition": "ståndpunkt",
+        "siblings": [
+          {
+            "word": "synpunkt",
+            "source": "candidate"
+          },
+          {
+            "word": "åsikt",
+            "source": "suggested"
+          }
+        ],
+        "root_verification": "Ord 1 rot: syn-punkt (svensk), Ord 2 rot: åsikt (svensk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en mental eller intellektuell position i en fråga."
+      },
+      {
+        "sense_id": "lexin--ställning..3",
+        "definition": "social position",
+        "siblings": [
+          {
+            "word": "status",
+            "source": "candidate"
+          },
+          {
+            "word": "rang",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: status (latin), Ord 2 rot: rang (fransk/tysk). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en persons plats i en social hierarki."
+      },
+      {
+        "sense_id": "lexin--ställning..5",
+        "definition": "konstruktion",
+        "siblings": [
+          {
+            "word": "uppbyggnad",
+            "source": "candidate"
+          },
+          {
+            "word": "stomme",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: upp-byggnad (svensk), Ord 2 rot: stomme (svensk stam). Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver den fysiska strukturen eller ramverket i ett bygge."
+      }
+    ],
+    "rejected_senses": [
+      {
+        "sense_id": "lexin--ställning..4",
+        "reason": "För lik betydelse 3 (social position) då båda rör rangordning och placering i en lista/hierarki."
+      }
+    ]
+  },
+  "växel": {
+    "categories": [
+      {
+        "sense_id": "lexin--växel..1",
+        "definition": "ställe där något kopplas om",
+        "siblings": [
+          {
+            "word": "förgrening",
+            "source": "candidate"
+          },
+          {
+            "word": "korsning",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: förgren-, Ord 2 rot: kors-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver punkter i ett nätverk eller system där vägen delas eller möts."
+      },
+      {
+        "sense_id": "lexin--växel..2",
+        "definition": "anordning som reglerar hjulens varvtal i förhållande till motorns",
+        "siblings": [
+          {
+            "word": "koppling",
+            "source": "candidate"
+          },
+          {
+            "word": "kardan",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: koppl-, Ord 2 rot: kardan-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Komponenter i ett fordons drivlina som samarbetar med växeln."
+      },
+      {
+        "sense_id": "lexin--växel..3",
+        "definition": "pengar i mindre valörer, växelpengar",
+        "siblings": [
+          {
+            "word": "fickpengar",
+            "source": "candidate"
+          },
+          {
+            "word": "mynt",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: fickpeng-, Ord 2 rot: mynt-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver fysiska pengar i små valörer för vardagligt bruk."
+      },
+      {
+        "sense_id": "lexin--växel..4",
+        "definition": "en sorts skuldförbindelse (särskilt i äldre tid)",
+        "siblings": [
+          {
+            "word": "obligation",
+            "source": "candidate"
+          },
+          {
+            "word": "revers",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: obligat-, Ord 2 rot: revers-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Formella dokument som intygar en skuld och ett löfte om betalning."
+      }
+    ],
+    "rejected_senses": []
+  },
+  "öppen": {
+    "categories": [
+      {
+        "sense_id": "lexin--öppen..1",
+        "definition": "inte stängd eller låst eller täckt",
+        "siblings": [
+          {
+            "word": "bar",
+            "source": "candidate"
+          },
+          {
+            "word": "naken",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: bar, Ord 2 rot: naken. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver något som är exponerat eller saknar täckning."
+      },
+      {
+        "sense_id": "lexin--öppen..2",
+        "definition": "tillgänglig eller synlig för alla, allmän, offentlig",
+        "siblings": [
+          {
+            "word": "offentlig",
+            "source": "candidate"
+          },
+          {
+            "word": "allmän",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: offent-, Ord 2 rot: all-. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver tillgänglighet för allmänheten."
+      },
+      {
+        "sense_id": "lexin--öppen..3",
+        "definition": "inte avgjord",
+        "siblings": [
+          {
+            "word": "oavgjord",
+            "source": "candidate"
+          },
+          {
+            "word": "olöst",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: avgöra, Ord 2 rot: lösa. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en fråga eller situation som ännu inte har ett slutgiltigt svar."
+      },
+      {
+        "sense_id": "lexin--öppen..4",
+        "definition": "uppriktig",
+        "siblings": [
+          {
+            "word": "frank",
+            "source": "candidate"
+          },
+          {
+            "word": "rättfram",
+            "source": "candidate"
+          }
+        ],
+        "root_verification": "Ord 1 rot: frank, Ord 2 rot: rätt-fram. Jag bekräftar att de inte delar stam.",
+        "reasoning": "Beskriver en person som är ärlig och direkt i sin kommunikation."
+      }
+    ],
+    "rejected_senses": []
+  }
+}
