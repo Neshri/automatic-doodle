@@ -28,12 +28,71 @@ Usage:
 import json
 import re
 import argparse
+import difflib
 import requests
 
 from score_pivots import (
     load_embeddings, load_lexicon, get_candidates, sense_spread,
     embed_missing_senses, MULTISENSE_FILE,
 )
+from generate_multisense_json import get_wiktionary_senses, WIKTIONARY_USER_AGENT
+
+
+def build_word_inventory(lexicon: dict) -> list[str]:
+    """
+    Returns a sorted, deduplicated list of every baseform in the lexicon.
+    This is the ground-truth vocabulary against which LLM-suggested words are
+    spell-checked: the same pool from which embedding candidates are drawn.
+    """
+    return sorted({entry["baseform"] for entry in lexicon.values() if entry.get("baseform")})
+
+
+def correct_suggested_word(
+    word: str,
+    word_inventory: list[str],
+    session: requests.Session,
+) -> tuple[str, str | None]:
+    """
+    Attempts to spell-correct `word` against `word_inventory` using
+    difflib.get_close_matches (case-insensitive comparison, result
+    returned in original inventory casing).
+
+    Strategy: try a tight cutoff (0.82) first; if that yields nothing,
+    fall back to a looser one (0.72).  Both thresholds are higher than
+    difflib's default 0.6 to avoid false positives on short Swedish words
+    that share many letters.
+
+    Returns (corrected_word, wiktionary_definition_or_None).
+    - If the word already exists in the inventory verbatim: returns it unchanged.
+    - If a close match is found and differs from the original: returns the
+      corrected spelling plus the first Wiktionary definition for it.
+    - If no match at all: returns the original word and None.
+    """
+    word_lower = word.strip().lower()
+
+    # Fast path: exact match (case-insensitive) — no correction needed.
+    inventory_lower = {w.lower(): w for w in word_inventory}
+    if word_lower in inventory_lower:
+        return inventory_lower[word_lower], None  # correct casing, no wikt fetch
+
+    # Try two-pass fuzzy match: tight cutoff first, loose fallback.
+    inventory_list_lower = list(inventory_lower.keys())
+    match = difflib.get_close_matches(word_lower, inventory_list_lower, n=1, cutoff=0.82)
+    if not match:
+        match = difflib.get_close_matches(word_lower, inventory_list_lower, n=1, cutoff=0.72)
+    if not match:
+        return word, None  # no correction found
+
+    corrected_lower = match[0]
+    corrected = inventory_lower[corrected_lower]  # restore original casing from inventory
+
+    if corrected_lower == word_lower:
+        return corrected, None  # already correct (just casing differed — already handled above)
+
+    # Fetch the Wiktionary definition for the corrected word as a sanity check.
+    wikt_senses = get_wiktionary_senses(session, corrected)
+    definition = wikt_senses[0]["definition"] if wikt_senses else None
+    return corrected, definition
 
 
 def build_prompt(word, sense_reports, avg_spread, used_words=None):
@@ -285,6 +344,28 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args, use
         print(f"  Could not parse JSON from model response for '{word}'.")
         return None, raw_response, thinking
 
+    # ---- Spell-correct any LLM-suggested sibling words -----------------
+    word_inventory = args._word_inventory  # injected into args in main()
+    session_for_wikt = requests.Session()
+    session_for_wikt.headers.update({"User-Agent": WIKTIONARY_USER_AGENT})
+    for cat in result.get("categories", []):
+        for sib in cat.get("siblings", []):
+            if sib.get("source") != "suggested":
+                continue
+            original = sib.get("word", "")
+            corrected, wikt_def = correct_suggested_word(original, word_inventory, session_for_wikt)
+            if corrected.lower() != original.strip().lower():
+                print(f"  [spell-fix] '{original}' → '{corrected}'"
+                      + (f" ({wikt_def[:60]}…)" if wikt_def and len(wikt_def) > 60 else
+                         f" ({wikt_def})" if wikt_def else " (no Wiktionary definition found)"))
+                sib["word"] = corrected
+                sib["corrected_from"] = original
+                sib["wiktionary_definition"] = wikt_def
+            elif wikt_def is None and corrected.lower() not in {w.lower() for w in word_inventory}:
+                # Word not in inventory at all and no correction found — flag it.
+                sib["correction_warning"] = "not found in lexicon"
+    # --------------------------------------------------------------------
+
     return result, raw_response, thinking
 
 
@@ -374,8 +455,16 @@ def print_result(word, puzzles):
             label = cat.get("category_label", "(no label)")
             print(f"[{cat.get('sense_id')}] {label}  —  definition: {cat.get('definition')}")
             for sib in cat.get("siblings", []):
-                tag = "" if sib.get("source") == "candidate" else "  <-- SUGGESTED, not in candidate list, verify"
-                print(f"  {sib.get('word')}{tag}")
+                if sib.get("source") == "candidate":
+                    print(f"  {sib.get('word')}")
+                elif sib.get("corrected_from"):
+                    wikt = sib.get("wiktionary_definition")
+                    wikt_note = f", wikt: \"{wikt}\"" if wikt else ""
+                    print(f"  {sib.get('word')}  <-- SUGGESTED (corrected from '{sib['corrected_from']}'){wikt_note}")
+                elif sib.get("correction_warning"):
+                    print(f"  {sib.get('word')}  <-- SUGGESTED (not found in lexicon — verify spelling manually)")
+                else:
+                    print(f"  {sib.get('word')}  <-- SUGGESTED, not in candidate list, verify")
             print(f"  Reasoning: {cat.get('reasoning')}\n")
         if result.get("rejected_senses"):
             print("Rejected senses:")
@@ -418,6 +507,11 @@ def main():
     lexicon = load_lexicon()
     matrix, meta = embed_missing_senses(multisense, matrix, meta)
     id_to_index = {m["id"]: i for i, m in enumerate(meta)}
+
+    # Build word inventory once and attach to args so process_word() can
+    # access it without an extra parameter threading through every call.
+    args._word_inventory = build_word_inventory(lexicon)
+    print(f"Word inventory built: {len(args._word_inventory)} unique baseforms.")
 
     # ------------------------------------------------------------------ #
     # Single-word mode                                                     #
