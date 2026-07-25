@@ -729,13 +729,15 @@ def main():
     ap.add_argument("--output", default="llm_selections.json",
                     help="Output file for --all mode (default: llm_selections.json). "
                          "Existing entries are skipped so the run can be resumed.")
-    ap.add_argument("--top-k", type=int, default=40,
-                     help="Candidates shown per sense (default 40, up from 20). Widening this is "
-                          "the main lever against low yield: every 'suggested' word the model "
-                          "reaches for has to independently pass lexicon/Wiktionary/POS "
-                          "verification and get a real definition, and that's where most category "
-                          "rejections come from. A deeper real candidate pool gives the model less "
-                          "reason to invent one.")
+    ap.add_argument("--top-k", type=int, default=20,
+                     help="Candidates shown per sense (default 20). Was briefly widened to 40 on "
+                          "the theory that a deeper real candidate pool would reduce reliance on "
+                          "unverified 'suggested' words. On a real run that didn't hold up -- the "
+                          "same candidates were present in the top-20 slice too, and the longer "
+                          "list seemed to give the model more to hairsplit over rather than fewer "
+                          "reasons to invent a word, and a same-pivot rerun at 20 yielded MORE "
+                          "usable categories, not fewer. Reverted to 20 pending firmer evidence "
+                          "either way.")
     ap.add_argument("--model", default="gemma4:31b")
     ap.add_argument("--temperature", type=float, default=0.2,
                      help="Lower = more deterministic. Default lowered from Ollama's default "
