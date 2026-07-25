@@ -32,7 +32,7 @@ import difflib
 import requests
 
 from score_pivots import (
-    load_embeddings, load_lexicon, get_candidates, sense_spread,
+    load_embeddings, load_lexicon, get_candidates,
     embed_missing_senses, MULTISENSE_FILE,
 )
 from generate_multisense_json import get_wiktionary_senses, WIKTIONARY_USER_AGENT
@@ -161,18 +161,20 @@ def verify_and_correct_sibling(
     return sib
 
 
-def build_prompt(word, sense_reports, avg_spread, used_words=None):
-    used_words = used_words or set()
+def build_sense_category_prompt(word, sense_reports):
+    """
+    Stage 1 prompt. Deliberately asks for ONE thing only: the best category
+    (label + 2 siblings) for EACH sense of the pivot, independently. No
+    cross-sense comparison, no rejection decision -- that judgment is
+    unreliable when made on abstract dictionary definitions, and it's
+    handled later in stage 2 on the concrete categories this stage produces.
+    Every sense gets a genuine attempt; a sense with no viable siblings is
+    marked unusable with a reason rather than silently skipped, so the
+    caller can tell "no good candidates" apart from "not attempted".
+    """
     lines = []
     lines.append(f"Pivotord: \"{word}\" (svenska)")
-    lines.append(f"Ordet har {len(sense_reports)} betydelser. Ett pussel i Connections-stil behöver högst 4.")
-    lines.append(f"Genomsnittligt avstånd mellan betydelserna: avg_pairwise_sim={avg_spread:.3f} "
-                 f"(lägre = betydelserna är mer distinkta från varandra, vilket är bra för pusslet).")
-    if used_words:
-        lines.append("")
-        lines.append(f"VIKTIGT: Detta pivotord har redan använts i tidigare pussel i denna omgång. "
-                      f"Följande syskonord är REDAN ANVÄNDA och FÅR INTE föreslås igen, varken som "
-                      f"\"candidate\" eller \"suggested\": {', '.join(sorted(used_words))}")
+    lines.append(f"Ordet har {len(sense_reports)} betydelser.")
     lines.append("")
     lines.append("För varje betydelse nedan: dess definition, samt dess topprankade kandidatord "
                   "(redan filtrerade så att ordets egna andra betydelser är borttagna, rankade efter "
@@ -182,76 +184,63 @@ def build_prompt(word, sense_reports, avg_spread, used_words=None):
     for i, sr in enumerate(sense_reports, 1):
         lines.append(f"--- BETYDELSE {i}: {sr['id']} [{sr['pos']}] ---")
         lines.append(f"Definition: {sr['definition']}")
-        if sr["flags"]:
-            lines.append(f"Automatiska flaggor: {', '.join(sr['flags'])}")
         lines.append("Kandidater (poäng, ord, ordklass, definition):")
         for c in sr["candidates"]:
             lines.append(f"  {c['score']:.3f}  {c['baseform']}  [{c['pos']}]  {c['definition']}")
         lines.append("")
 
-    lines.append("""UPPGIFT OCH LINGVISTISKA REGLER FOR PUSSELKVALITET:
+    lines.append("""UPPGIFT OCH LINGVISTISKA REGLER:
 
-1. SEMANTISK SEPARATION (KATEGORIER):
-   Kategorierna måste tillhöra helt olika domäner eller beskriva helt olika koncept.
-   - Välj ALDRIG två betydelser som bara skiljer sig åt i grammatisk roll (t.ex. transitivt vs. 
-     intransitivt), gradskillnad (mild vs. extrem) eller stilnivå för samma grundläggande handling. 
-   - Om två betydelser delar samma kärnhandling eller domän, välj endast den starkaste och 
-     förkasta den andra i "rejected_senses".
+Din enda uppgift här är att, FÖR VARJE BETYDELSE OVAN VAR FÖR SIG, hitta de 2 bästa syskonorden
+och ett kort spelbart kategorinamn. Du ska INTE jämföra betydelserna mot varandra eller avgöra om
+någon är "för lik" en annan -- det görs i ett separat steg senare, med ditt facit som underlag.
+Behandla varje betydelse som ett fristående litet problem.
 
-2. MORFOLOGISKT OBEROENDE (SYSKONORD):
+1. MORFOLOGISKT OBEROENDE (SYSKONORD):
    Syskonorden inom en kategori måste vara ortografiskt och etymologiskt oberoende.
-   - Orden får INTE dela samma ordstam, ordrot eller vara avledningar/sammensättningar av varandra 
+   - Orden får INTE dela samma ordstam, ordrot eller vara avledningar/sammensättningar av varandra
      (t.ex. ett grundord och dess prefix/avledning är inte giltiga syskonord i ett pussel).
-   - Syskonorden måste också matcha pivotordets ordklass i den aktuella betydelsen (använd inte 
+   - Syskonorden måste också matcha pivotordets ordklass i den aktuella betydelsen (använd inte
      substantiv som syskon till ett verbpivot).
 
-3. RIKTNING OCH ANTONYMER:
-   Embedding-likhet rankar ofta motsatser högt för att de delar ämne. Kontrollera alltid att 
+2. RIKTNING OCH ANTONYMER:
+   Embedding-likhet rankar ofta motsatser högt för att de delar ämne. Kontrollera alltid att
    kandidatordets faktiska handling rör sig i SAMMA riktning som betydelsens definition (inte motsatt).
 
-4. KVALITET FRAMFÖR KVANTITET:
-   Tvinga ALDRIG fram 4 kategorier. Ett pussel med 2 eller 3 klockrena, helt ortogonala kategorier 
-   är oändligt mycket bättre än ett pussel med 4 kategorier där någon är sökt, för nära en annan, 
-   eller kräver svaga kandidater.
+3. KATEGORINAMN (category_label):
+   Ge varje kategori ett kort, spelbart namn (2-4 ord) som en spelare skulle se som kategoriid —
+   t.ex. "MILITÄR RANG" eller "DEL AV EN BOK". Inte samma sak som definition eller reasoning;
+   upprepa dem inte ordagrant.
 
-5. KATEGORINAMN (category_label):
-   Ge varje kategori ett kort, spelbart namn (2-4 ord) som en spelare skulle se som kategoririd —
-   t.ex. "MILITÄR RANG" eller "DEL AV EN BOK".
-   - category_label är INTE samma sak som definition (betydelsens ordboksdefinition) och INTE
-     samma sak som reasoning (en mening som motiverar varför syskonorden hör ihop). Upprepa inte
-     definition eller reasoning ordagrant i category_label.
-   - Om definition redan är kort och fungerar fint som ett kategorinamn i sig (t.ex. "dokument"),
-     är det okej att category_label liknar den nära — men skriv den ändå som en egen fras, inte en
-     kopiering.
+4. SYSKONORD -- KÄLLA:
+   Välj EXAKT 2 syskonord, HELST BÅDA från kandidatlistan ("source": "candidate"). Kandidatlistan
+   har redan bekräftade ord med definitioner -- ett föreslaget ord ("source": "suggested") måste
+   verifieras separat efteråt, och om det misslyckas kasseras HELA kategorin. Föreslå därför bara
+   ett ord om kandidatlistan för den betydelsen verkligen saknar något användbart, och välj då ett
+   vanligt, etablerat svenskt ord (inte en sällsynt/teknisk term).
 
-6. INGA DUBBLETTER:
-   - Samma syskonord får ALDRIG förekomma i mer än en kategori i samma svar — varje ord representeras
-     av EN bricka i spelet och kan inte tillhöra två kategorier samtidigt.
-   - Om ett ord som skulle passa bra redan är upptaget (antingen av en annan kategori i detta svar,
-     eller finns med i listan över REDAN ANVÄNDA SYSKONORD ovan om sådan finns), välj ett annat ord.
+5. OM EN BETYDELSE SAKNAR BRA SYSKONORD:
+   Tvinga aldrig fram två svaga syskonord. Om varken kandidatlistan eller ett rimligt föreslaget
+   ord duger, markera betydelsen som "unusable" med en kort anledning istället för att gissa.
 
-INSTRUKTIONER FÖR UTMATNING:
-- Välj max 4 betydelser (färre är helt okej).
-- För varje vald betydelse: välj EXAKT 2 syskonord. Föredra kandidatlistan ("source": "candidate"). 
-  Om kandidatlistan är otillräcklig får du föreslå ord ("source": "suggested"), men använd det återhållsamt.
-- Om en betydelse är för lik en annan vald betydelse, eller saknar bra syskonord, placera den i "rejected_senses".
+6. INGA DUBBLETTER INOM DETTA SVAR:
+   Samma syskonord får inte förekomma i mer än en kategori i hela svaret -- om ett ord passar bra
+   för två olika betydelser, använd det bara för en av dem och välj ett alternativ för den andra.
 
 """)
     lines.append("""Du får resonera fritt innan du svarar. Avsluta ditt svar med EXAKT ETT JSON-kodblock i detta
-format (och inget annat efter det):
+format (och inget annat efter det). En post per betydelse ovan, i samma ordning:
 ```json
 {
-  "categories": [
-    {"sense_id": "...", "definition": "...", "category_label": "...",
+  "sense_categories": [
+    {"sense_id": "...", "category_label": "...",
      "siblings": [
         {"word": "...", "source": "candidate"},
         {"word": "...", "source": "suggested"}
      ],
      "root_verification": "Ord 1 rot: [rot], Ord 2 rot: [rot]. Jag bekräftar att de inte delar stam.",
-     "reasoning": "en kort mening"}
-  ],
-  "rejected_senses": [
-    {"sense_id": "...", "reason": "en kort mening"}
+     "reasoning": "en kort mening"},
+    {"sense_id": "...", "unusable": true, "reason": "en kort mening"}
   ]
 }
 ```""")
@@ -259,29 +248,68 @@ format (och inget annat efter det):
     return "\n".join(lines)
 
 
-def build_feedback_addendum(n_found: int, n_total_senses: int, previous_response: str) -> str:
+def build_selection_prompt(word, categories):
     """
-    Returns a short, neutrally-worded addendum appended to the original prompt
-    for a within-attempt retry. Deliberately does NOT mention a required number
-    of categories — telling the model it must hit a floor causes it to force
-    weak/inaccurate categories to meet the target ("slop"). Instead, the model
-    is invited to try a different sense combination and told to apply the same
-    quality standard, not a higher quantity target.
-    """
-    return f"""
----
-[Feedback från föregående försök]
-Du hittade {n_found} distinkt{'a' if n_found != 1 else ''} kategori{'er' if n_found != 1 else ''} \
-från de {n_total_senses} tillgängliga betydelserna.
-Undersök om det finns en annan kombination av dessa {n_total_senses} betydelser som ger
-fler ortogonala kategorier med lika stark semantisk separation — men bara om de håller
-samma kvalitetsstandard som dina regler kräver. Om inte, ange de {n_found} bästa du
-hittade och behåll din ursprungliga motivering.
+    Stage 2 prompt. Given the CONCRETE categories stage 1 produced (real
+    label + real sibling words, not abstract definitions), group them into
+    one or more puzzles of up to 4 mutually-distinct categories each. This
+    is a comparison over tangible artifacts rather than a judgment call on
+    dictionary prose, which is what stage 1 previously conflated it with.
 
-Ditt föregående svar:
-{previous_response}
----
-"""
+    Sibling words are already globally unique across every category passed
+    in here (enforced in code before this prompt is built), so the model
+    doesn't need to worry about word collisions -- only about whether two
+    categories feel like the same underlying idea to a puzzle solver.
+    """
+    lines = []
+    lines.append(f"Pivotord: \"{word}\" (svenska)")
+    lines.append(f"Nedan är {len(categories)} färdiga kategorier, en per betydelse av pivotordet. "
+                 f"Varje kategori har redan sina 2 syskonord bestämda.")
+    lines.append("")
+    lines.append("Din uppgift: gruppera dessa kategorier i ett eller flera pussel om EXAKT 4 kategorier "
+                 "vardera, där de 4 kategorierna i samma pussel känns tydligt åtskilda för en spelare -- "
+                 "helt olika domäner eller koncept, inte bara olika grammatisk form eller stilnivå av "
+                 "samma grundidé. Döm detta på kategorinamnet och syskonorden nedan (det spelaren "
+                 "faktiskt ser), inte bara på ordboksdefinitionen.")
+    lines.append("")
+    lines.append("VIKTIGT -- var inte överförsiktig: två kategorier som råkar komma från samma "
+                 "pivotord är INTE automatiskt för lika varandra. Döm varje par på sina egna meriter: "
+                 "skulle en spelare som ser de 4 kategorierna sida vid sida uppleva dem som fyra "
+                 "olika idéer, eller skulle två av dem kännas som samma sak sagt på två sätt? Bara det "
+                 "senare räknas som för likt. Om du är osäker, luta åt att behålla båda snarare än att "
+                 "kasta bort en kategori i onödan -- det är kodens jobb att göra en sista kontroll, inte ditt.")
+    lines.append("")
+
+    for i, cat in enumerate(categories, 1):
+        sib_desc = "; ".join(f"{s['word']} ({s.get('definition', '')})" for s in cat["siblings"])
+        lines.append(f"--- KATEGORI {i}: {cat['sense_id']} ---")
+        lines.append(f"Namn: {cat['category_label']}")
+        lines.append(f"Betydelse (pivotordets definition här): {cat['definition']}")
+        lines.append(f"Syskonord: {sib_desc}")
+        lines.append("")
+
+    lines.append("""Fler regler:
+- Varje kategori får användas i HÖGST ett pussel totalt (inte återanvänd över flera pussel).
+- Ett pussel måste ha EXAKT 4 kategorier -- om du bara hittar 2-3 tydligt åtskilda kategorier
+  totalt, bilda inget pussel av dem alls hellre än att tvinga ihop ett svagt fjärde val.
+- Bilda så många kompletta pussel om 4 som de tillgängliga kategorierna rimligen tillåter --
+  men aldrig på bekostnad av att blanda in en kategori som egentligen är för lik en annan i samma pussel.
+- Kategorier som inte platsar i något pussel listas i "unused".
+
+Du får resonera fritt innan du svarar. Avsluta ditt svar med EXAKT ETT JSON-kodblock i detta
+format (och inget annat efter det):
+```json
+{
+  "puzzles": [
+    {"sense_ids": ["...", "...", "...", "..."], "reasoning": "en kort mening"}
+  ],
+  "unused": [
+    {"sense_id": "...", "reason": "en kort mening"}
+  ]
+}
+```""")
+
+    return "\n".join(lines)
 
 
 OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
@@ -367,23 +395,11 @@ def call_ollama(prompt, model, temperature, think):
     return "".join(full_content), "".join(full_thinking)
 
 
-def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
-                 used_words=None, extra_prompt_suffix=None):
+def build_sense_reports(word, multisense, matrix, meta, id_to_index, lexicon, top_k, used_words=None):
     """
-    Build prompt, call LLM, parse result for a single pivot word.
-    Returns (result_dict, raw_response, thinking) or raises on hard failure.
-    result_dict is None if the word was skipped (too few senses) or parse failed.
-
-    used_words: sibling words already claimed by an earlier puzzle for this
-    same pivot (see generate_puzzles_for_word). Filtered out of each sense's
-    candidate list before it's even shown to the LLM -- cheaper and more
-    reliable than only telling it "don't reuse these" after dangling them
-    as top-ranked options.
-
-    extra_prompt_suffix: optional text appended after the main prompt body
-    before sending to Ollama -- used by the retry-with-feedback mechanism in
-    generate_puzzles_for_word to give the model a second look with context
-    from its previous attempt.
+    Deterministic candidate-generation for one pivot's senses -- no LLM call.
+    Shared by both generate_sense_categories() callers and any future
+    non-LLM inspection of a pivot's candidate pool.
     """
     used_words = used_words or set()
     sense_reports = []
@@ -394,44 +410,42 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
         pivot_entry = lexicon.get(sid, {})
         pivot_pos = pivot_entry.get("part_of_speech") or sense.get("part_of_speech")
         pivot_baseform = pivot_entry.get("baseform", word)
-        candidates = get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, args.top_k)
+        candidates = get_candidates(sid, pivot_baseform, matrix, meta, id_to_index, lexicon, top_k)
         if used_words:
             candidates = [c for c in candidates if c["baseform"].strip().lower() not in used_words]
         sense_reports.append({
             "id": sid, "pos": pivot_pos, "definition": sense["definition"],
             "flags": [], "candidates": candidates,
         })
+    return sense_reports
 
-    if len(sense_reports) < 4:
-        print(f"  Only {len(sense_reports)} senses embedded for '{word}' — need at least 4. Skipping.")
-        return None, None, None
 
-    all_sense_ids = [sr["id"] for sr in sense_reports]
-    avg_spread, _, _ = sense_spread(all_sense_ids, matrix, id_to_index, close_threshold=0.5)
-
-    prompt = build_prompt(word, sense_reports, avg_spread, used_words=used_words)
-    if extra_prompt_suffix:
-        prompt = prompt + extra_prompt_suffix
-
+def generate_sense_categories(word, sense_reports, args):
+    """
+    Stage 1 LLM call: one category (label + siblings) per sense, independently.
+    Returns (raw_sense_categories, raw_response, thinking), or (None, raw, thinking)
+    on parse failure. raw_sense_categories is the unvalidated list straight from
+    the model -- siblings aren't yet resolved/verified, that happens in the caller.
+    """
+    prompt = build_sense_category_prompt(word, sense_reports)
     if args.show_prompt:
         print("=" * 60)
+        print("STAGE 1 PROMPT:")
         print(prompt)
         print("=" * 60)
 
-    print(f"  Calling {args.model} (temperature={args.temperature}, think={args.think})...")
+    print(f"  [stage 1] Calling {args.model} for {len(sense_reports)} senses of '{word}'...")
     raw_response, thinking = call_ollama(prompt, args.model, args.temperature, args.think)
 
     if args.show_thinking and thinking:
         print("=" * 60)
-        print("THINKING TRACE:")
+        print("STAGE 1 THINKING:")
         print(thinking)
         print("=" * 60)
-    elif args.think and not thinking:
-        print("  [Note: --think was on, but no thinking trace returned — model may not support it]")
 
     if args.show_raw:
         print("=" * 60)
-        print("RAW RESPONSE:")
+        print("STAGE 1 RAW RESPONSE:")
         print(raw_response)
         print("=" * 60)
 
@@ -441,32 +455,190 @@ def process_word(word, multisense, matrix, meta, id_to_index, lexicon, args,
             raise json.JSONDecodeError("no JSON object found in response", raw_response, 0)
         result = json.loads(json_str)
     except json.JSONDecodeError:
-        print(f"  Could not parse JSON from model response for '{word}'.")
+        print(f"  [stage 1] Could not parse JSON from model response for '{word}'.")
         return None, raw_response, thinking
 
-    # ---- Spell-correct and validate sibling words (POS-aware) ----------
-    inventory_by_pos, all_words_map, definitions_by_pos = args._word_inventory_data  # injected into args in main()
+    return result.get("sense_categories", []), raw_response, thinking
+
+
+def resolve_sense_category_pool(word, raw_categories, sense_reports, args, reject_log):
+    """
+    Verifies/spell-corrects every stage-1 sibling (backfilling definitions),
+    logs senses the model marked unusable or skipped entirely, then runs
+    filter_valid_categories() ONCE across the whole pool with a single shared
+    claimed-word set. Because this happens before any puzzle grouping, every
+    surviving category is guaranteed globally word-unique -- stage 2 never
+    has to reason about collisions, only about conceptual closeness.
+
+    Returns a dict {sense_id: category} of the categories that survived.
+    """
+    inventory_by_pos, all_words_map, definitions_by_pos = args._word_inventory_data
     session_for_wikt = requests.Session()
     session_for_wikt.headers.update({"User-Agent": WIKTIONARY_USER_AGENT})
     sense_map = {sr["id"]: sr for sr in sense_reports}
 
-    for cat in result.get("categories", []):
-        sid = cat.get("sense_id")
+    seen_sids = set()
+    candidate_categories = []
+    for entry in raw_categories:
+        sid = entry.get("sense_id")
+        seen_sids.add(sid)
+        if entry.get("unusable"):
+            reject_log.append({"sense_id": sid, "words": [], "reason": f"stage1_unusable: {entry.get('reason', '')}"})
+            continue
+
         sr = sense_map.get(sid, {})
         target_pos = sr.get("pos")
         candidate_list = sr.get("candidates", [])
-
-        for sib in cat.get("siblings", []):
+        for sib in entry.get("siblings", []):
             verify_and_correct_sibling(
                 sib, candidate_list, target_pos, inventory_by_pos, all_words_map,
                 definitions_by_pos, session_for_wikt,
             )
-    # --------------------------------------------------------------------
+        entry["definition"] = sr.get("definition", "")
+        candidate_categories.append(entry)
 
-    return result, raw_response, thinking
+    for sr in sense_reports:
+        if sr["id"] not in seen_sids:
+            reject_log.append({"sense_id": sr["id"], "words": [], "reason": "sense_missing_from_stage1_response"})
+
+    valid_categories = filter_valid_categories(candidate_categories, used_words=set(), reject_log=reject_log)
+    return {cat["sense_id"]: cat for cat in valid_categories}
 
 
-def filter_valid_categories(categories, used_words):
+def select_puzzle_groups(word, category_pool, args):
+    """
+    Stage 2 LLM call: given the concrete, already-verified categories, group
+    them into puzzles of exactly 4 mutually-distinct categories. Retries up
+    to args.max_retries_per_attempt times if the model returns zero groups,
+    since this is the judgment call most prone to sampling-variance-driven
+    over-caution -- and it's cheap to resample, unlike stage 1.
+
+    Returns (groups, unused, reject_log_additions). groups is a list of
+    lists of sense_ids (each exactly 4, deduplicated against earlier groups
+    in the same response). Malformed groups (wrong size, sense_id reused
+    across groups, sense_id not in the pool) are dropped with a logged reason
+    rather than silently truncated or crashing.
+    """
+    categories = list(category_pool.values())
+    reject_log = []
+
+    for attempt in range(1, max(1, args.max_retries_per_attempt) + 1):
+        prompt = build_selection_prompt(word, categories)
+        if args.show_prompt:
+            print("=" * 60)
+            print(f"STAGE 2 PROMPT (attempt {attempt}):")
+            print(prompt)
+            print("=" * 60)
+
+        print(f"  [stage 2] Calling {args.model} to group {len(categories)} categories "
+              f"into puzzles (attempt {attempt})...")
+        raw_response, thinking = call_ollama(prompt, args.model, args.temperature, args.think)
+
+        if args.show_thinking and thinking:
+            print("=" * 60)
+            print("STAGE 2 THINKING:")
+            print(thinking)
+            print("=" * 60)
+        if args.show_raw:
+            print("=" * 60)
+            print("STAGE 2 RAW RESPONSE:")
+            print(raw_response)
+            print("=" * 60)
+
+        try:
+            json_str = extract_json(raw_response)
+            if json_str is None:
+                raise json.JSONDecodeError("no JSON object found in response", raw_response, 0)
+            result = json.loads(json_str)
+        except json.JSONDecodeError:
+            print(f"  [stage 2] Could not parse JSON from model response for '{word}' (attempt {attempt}).")
+            continue
+
+        claimed_sids = set()
+        groups = []
+        for g in result.get("puzzles", []):
+            sids = g.get("sense_ids", [])
+            if len(sids) != 4:
+                reject_log.append({"sense_id": None, "words": sids, "reason": "stage2_group_wrong_size"})
+                continue
+            if any(s not in category_pool for s in sids):
+                reject_log.append({"sense_id": None, "words": sids, "reason": "stage2_group_unknown_sense_id"})
+                continue
+            if any(s in claimed_sids for s in sids) or len(set(sids)) != 4:
+                reject_log.append({"sense_id": None, "words": sids, "reason": "stage2_group_reused_sense_id"})
+                continue
+            groups.append(sids)
+            claimed_sids.update(sids)
+
+        for u in result.get("unused", []):
+            reject_log.append({"sense_id": u.get("sense_id"), "words": [],
+                                "reason": f"stage2_too_similar: {u.get('reason', '')}"})
+
+        if groups:
+            return groups, reject_log
+
+        print(f"  '{word}': stage 2 attempt {attempt} returned zero valid puzzle groups"
+              + (", retrying..." if attempt < args.max_retries_per_attempt else "."))
+
+    return [], reject_log
+
+
+def generate_puzzles_for_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
+    """
+    Two-stage generation for one pivot:
+      1. generate_sense_categories() -- one category per sense, independently.
+         No cross-sense judgment, so this call is a narrow, well-defined task
+         gemma4 is reliably good at.
+      2. resolve_sense_category_pool() -- verify/spell-correct/dedupe, purely
+         in code (no LLM), producing a pool of globally word-unique categories.
+      3. select_puzzle_groups() -- ask the model which of the CONCRETE, already-
+         built categories are distinct enough to co-occur in a puzzle. This is
+         the judgment that used to be conflated into step 1 and was causing
+         inconsistent over-rejection; splitting it out means it's now made by
+         comparing real labels/words instead of abstract definitions, and can
+         be cheaply resampled on its own if the model comes back too cautious.
+
+    Puzzles are capped at args.max_puzzles_per_word (a sense-rich pivot can
+    otherwise dominate the whole run).
+
+    Returns (puzzles, reject_log) in the same shape as before, so main()'s
+    callers don't need to change.
+    """
+    reject_log = []
+    sense_reports = build_sense_reports(word, multisense, matrix, meta, id_to_index, lexicon, args.top_k)
+
+    if len(sense_reports) < 4:
+        print(f"  Only {len(sense_reports)} senses embedded for '{word}' — need at least 4. Skipping.")
+        return [], reject_log
+
+    raw_categories, raw_response, thinking = generate_sense_categories(word, sense_reports, args)
+    if raw_categories is None:
+        return [], reject_log  # stage 1 parse failure
+
+    category_pool = resolve_sense_category_pool(word, raw_categories, sense_reports, args, reject_log)
+    print(f"  '{word}': {len(category_pool)}/{len(sense_reports)} senses produced a usable category "
+          f"after stage 1 verification.")
+
+    if len(category_pool) < 4:
+        return [], reject_log  # not enough verified categories to ever form one puzzle
+
+    groups, stage2_rejects = select_puzzle_groups(word, category_pool, args)
+    reject_log.extend(stage2_rejects)
+
+    puzzles = []
+    for sids in groups[:args.max_puzzles_per_word]:
+        categories = [category_pool[sid] for sid in sids]
+        puzzles.append({"categories": categories})
+        print(f"  '{word}': puzzle {len(puzzles)} complete ({[c['category_label'] for c in categories]}).")
+
+    if not puzzles:
+        print(f"  '{word}': stage 1 produced {len(category_pool)} usable categories, "
+              f"but stage 2 found no combination of 4 distinct enough to form a puzzle.")
+
+    return puzzles, reject_log
+
+
+def filter_valid_categories(categories, used_words, reject_log=None):
     """
     Post-hoc safety net -- don't just trust the LLM followed the
     no-duplicate-siblings / don't-reuse-used-words instructions. Walks
@@ -483,103 +655,42 @@ def filter_valid_categories(categories, used_words):
     up without a definition. Quality gate: the puzzle schema requires a
     definition for every word it uses, so an unverified/undefined sibling
     disqualifies the whole category rather than shipping a hole in it.
+
+    reject_log: optional list. If given, one entry is appended per dropped
+    category -- {"sense_id", "words", "reason"} -- so a batch run over
+    hundreds of pivots produces a queryable record of WHY yield was low,
+    instead of the reason existing only in scrollback the operator can't
+    realistically read for every word.
     """
     claimed = set(used_words)
     valid = []
     for cat in categories:
         siblings = cat.get("siblings", [])
+        sid = cat.get("sense_id")
         words = [s.get("word", "").strip().lower() for s in siblings if s.get("word")]
+
+        def _reject(reason):
+            if reject_log is not None:
+                reject_log.append({"sense_id": sid, "words": words, "reason": reason})
+
         if len(words) != 2:
-            continue  # malformed -- wrong sibling count
+            _reject("wrong_sibling_count")
+            continue
         if len(set(words)) != len(words):
-            continue  # category reuses the same word for both its own siblings
+            _reject("duplicate_word_within_category")
+            continue
         if any(w in claimed for w in words):
-            continue  # collides with an earlier category or an earlier puzzle
+            _reject("collides_with_already_claimed_word")
+            continue
         if any(s.get("correction_warning") for s in siblings):
-            continue  # word never confirmed to exist for the target POS
+            _reject("unverified_word")
+            continue
         if any(not s.get("definition") for s in siblings):
-            continue  # schema requires a definition for every word used
+            _reject("missing_definition")
+            continue
         valid.append(cat)
         claimed.update(words)
     return valid
-
-
-def generate_puzzles_for_word(word, multisense, matrix, meta, id_to_index, lexicon, args):
-    """
-    Repeatedly calls the LLM for the same pivot, each time telling it which
-    sibling words earlier puzzles for this pivot already claimed, so a
-    sense-rich pivot (Wiktionary's fallback senses can add several
-    near-duplicate senses to one pivot -- e.g. "tro" ended up with three
-    different phrasings of "religious belief") can yield SEVERAL distinct
-    puzzles instead of forcing everything into one call or throwing the
-    near-duplicates away.
-
-    Stops as soon as an attempt can't produce a full 4-category puzzle
-    after filtering (build_puzzles.py requires exactly 4 -- a puzzle needs
-    4 senses to be valid, no point keeping a partial result), or after
-    args.max_puzzles_per_word attempts, whichever comes first.
-
-    On the very first attempt (no puzzles produced yet), if fewer than 4
-    valid categories come back, a within-attempt retry fires: the model's
-    own response is shown back to it with a neutral nudge to try a different
-    sense combination (without revealing the 4-category floor). Controlled
-    by args.max_retries_per_attempt (default 1; 0 disables the retry).
-    """
-    used_words = set()
-    puzzles = []
-
-    for attempt in range(1, args.max_puzzles_per_word + 1):
-        result, raw_response, thinking = process_word(
-            word, multisense, matrix, meta, id_to_index, lexicon, args, used_words=used_words
-        )
-        if result is None:
-            break  # too few senses embedded at all, or JSON parse failure
-
-        categories = filter_valid_categories(result.get("categories", []), used_words)
-
-        # ---- Within-attempt retry (first puzzle only) -------------------
-        # Only retry when this is the first puzzle attempt (puzzles list is
-        # empty) -- later attempts are expected to have a thinner pool, so
-        # retrying them would mostly waste calls.
-        max_retries = getattr(args, "max_retries_per_attempt", 1)
-        for retry_num in range(1, max_retries + 1):
-            if len(categories) >= 4 or len(puzzles) > 0:
-                break  # already sufficient, or not the first puzzle attempt
-            n_total = len(multisense[word])
-            print(f"  '{word}': attempt {attempt} retry {retry_num} — "
-                  f"{len(categories)} categories so far, asking for a different sense selection...")
-            feedback = build_feedback_addendum(len(categories), n_total, raw_response)
-            result, raw_response, thinking = process_word(
-                word, multisense, matrix, meta, id_to_index, lexicon, args,
-                used_words=used_words, extra_prompt_suffix=feedback,
-            )
-            if result is None:
-                break  # parse failure on retry
-            categories = filter_valid_categories(result.get("categories", []), used_words)
-        # ---- End retry --------------------------------------------------
-
-        if len(categories) < 4:
-            if attempt > 1:
-                print(f"  '{word}': attempt {attempt} only yielded {len(categories)} valid categories "
-                      f"after collision filtering -- stopping here, keeping {len(puzzles)} puzzle(s).")
-            elif max_retries > 0:
-                print(f"  '{word}': {len(categories)} valid categories after {max_retries} "
-                      f"retr{'y' if max_retries == 1 else 'ies'} — dropping this puzzle.")
-            break
-
-        result["categories"] = categories
-        puzzles.append(result)
-
-        for cat in categories:
-            for sib in cat.get("siblings", []):
-                w = sib.get("word", "").strip().lower()
-                if w:
-                    used_words.add(w)
-
-        print(f"  '{word}': puzzle {attempt} complete ({len(categories)} categories, "
-              f"{len(used_words)} sibling words claimed so far).")
-
-    return puzzles
 
 
 def print_result(word, puzzles):
@@ -607,22 +718,24 @@ def print_result(word, puzzles):
                 else:
                     print(f"  {sib.get('word')}  <-- SUGGESTED{corr_note}  —  {definition}{warn_note}")
             print(f"  Reasoning: {cat.get('reasoning')}\n")
-        if result.get("rejected_senses"):
-            print("Rejected senses:")
-            for r in result["rejected_senses"]:
-                print(f"  {r.get('sense_id')}: {r.get('reason')}")
 
 
 def main():
     ap = argparse.ArgumentParser()
-    word_group = ap.add_mutually_exclusive_group(required=True)
-    word_group.add_argument("--word", help="Process a single pivot word")
-    word_group.add_argument("--all", action="store_true",
+    mode_group = ap.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument("--word", help="Process a single pivot word")
+    mode_group.add_argument("--all", action="store_true",
                             help="Process every multisense word and save results to --output")
     ap.add_argument("--output", default="llm_selections.json",
                     help="Output file for --all mode (default: llm_selections.json). "
                          "Existing entries are skipped so the run can be resumed.")
-    ap.add_argument("--top-k", type=int, default=20)
+    ap.add_argument("--top-k", type=int, default=40,
+                     help="Candidates shown per sense (default 40, up from 20). Widening this is "
+                          "the main lever against low yield: every 'suggested' word the model "
+                          "reaches for has to independently pass lexicon/Wiktionary/POS "
+                          "verification and get a real definition, and that's where most category "
+                          "rejections come from. A deeper real candidate pool gives the model less "
+                          "reason to invent one.")
     ap.add_argument("--model", default="gemma4:31b")
     ap.add_argument("--temperature", type=float, default=0.2,
                      help="Lower = more deterministic. Default lowered from Ollama's default "
@@ -634,17 +747,17 @@ def main():
     ap.add_argument("--show-raw", action="store_true", help="Always print the raw LLM response, even on successful parse")
     ap.add_argument("--show-thinking", action="store_true", help="Print the model's thinking trace, if any")
     ap.add_argument("--max-puzzles-per-word", type=int, default=3,
-                     help="Cap on how many separate puzzles to try generating from one pivot "
-                          "(default 3), so one exceptionally sense-rich pivot doesn't dominate "
-                          "the whole set at the expense of variety across different pivots. "
-                          "Generation also stops early on its own once an attempt can't reach "
-                          "a full 4-category puzzle without reusing an already-claimed sibling.")
-    ap.add_argument("--max-retries-per-attempt", type=int, default=1,
-                     help="How many within-attempt retries to allow when the first puzzle "
-                          "attempt yields fewer than 4 valid categories (default 1). Each "
-                          "retry shows the model its own previous response and asks it to "
-                          "explore a different sense combination. Use 0 to disable retries "
-                          "and restore the original behaviour.")
+                     help="Cap on how many puzzles to keep from one pivot (default 3) -- stage 2 "
+                          "may propose more if a sense-rich pivot has enough distinct categories; "
+                          "this just trims the list so one pivot doesn't dominate the whole set.")
+    ap.add_argument("--max-retries-per-attempt", type=int, default=2,
+                     help="How many times to re-ask stage 2 (the puzzle-grouping step) if it "
+                          "comes back with zero valid groups (default 2). Stage 1 (per-sense "
+                          "category generation) is not retried -- it's a narrow, well-defined task "
+                          "per sense and doesn't need it. Stage 2's 'are these categories distinct "
+                          "enough' judgment is the one prone to sampling-variance over-caution, and "
+                          "it's cheap to resample since it doesn't touch the candidate lists again. "
+                          "Use 0 to disable retries.")
     args = ap.parse_args()
 
     with open(MULTISENSE_FILE, "r", encoding="utf-8") as f:
@@ -667,10 +780,15 @@ def main():
             print(f"'{args.word}' not in {MULTISENSE_FILE}.")
             return
 
-        puzzles = generate_puzzles_for_word(
+        puzzles, reject_log = generate_puzzles_for_word(
             args.word, multisense, matrix, meta, id_to_index, lexicon, args
         )
         print_result(args.word, puzzles)
+        if reject_log:
+            print(f"\n{len(reject_log)} categor{'y' if len(reject_log) == 1 else 'ies'} "
+                  f"dropped by the quality gate:")
+            for r in reject_log:
+                print(f"  [{r['sense_id']}] {r['words']} -- {r['reason']}")
         return
 
     # ------------------------------------------------------------------ #
@@ -697,7 +815,7 @@ def main():
 
         print(f"[{i}/{total}] Processing '{word}'...")
         try:
-            puzzles = generate_puzzles_for_word(
+            puzzles, reject_log = generate_puzzles_for_word(
                 word, multisense, matrix, meta, id_to_index, lexicon, args
             )
         except Exception as exc:
@@ -708,11 +826,18 @@ def main():
         else:
             if puzzles:
                 print_result(word, puzzles)
-                saved[word] = {"puzzles": puzzles}
+                saved[word] = {"puzzles": puzzles, "reject_log": reject_log}
             else:
-                # too-few-senses, parse failure, or first attempt didn't reach
-                # 4 valid categories -- record a sentinel so resume skips it
-                saved[word] = {"puzzles": []}
+                # Sentinel so resume skips it -- but distinguish WHY it's empty:
+                # reject_log non-empty means the LLM ran (at least stage 1) and
+                # something was rejected along the way (unverified word, stage 2
+                # judged it too similar to another sense, etc) -- a candidate for
+                # retrying, possibly with different params. An empty reject_log
+                # means generation bailed before ever calling the LLM (fewer than
+                # 4 senses embedded) -- permanent, retrying won't help. NOTE: both
+                # are still skipped on resume; delete the key from the output file
+                # manually to force a retry of either kind.
+                saved[word] = {"puzzles": [], "reject_log": reject_log}
 
         # Write after every candidate so progress is never lost.
         with open(args.output, "w", encoding="utf-8") as f:
@@ -721,9 +846,27 @@ def main():
 
     done = sum(1 for v in saved.values() if v.get("puzzles"))
     total_puzzles = sum(len(v.get("puzzles", [])) for v in saved.values())
+    needs_retry = sorted(w for w, v in saved.items()
+                          if not v.get("puzzles") and v.get("reject_log") and "error" not in v)
+    too_few_senses = sorted(w for w, v in saved.items()
+                             if not v.get("puzzles") and not v.get("reject_log") and "error" not in v)
+    degraded = sorted(w for w, v in saved.items() if v.get("puzzles") and v.get("reject_log"))
+    errored = sorted(w for w, v in saved.items() if "error" in v)
+
     print(f"\nDone. {done}/{total} words produced at least one usable puzzle.")
     print(f"  {total_puzzles} puzzles total across those words.")
     print(f"Results written to {args.output}")
+    print(f"\nTriage (no need to eyeball individual entries -- filter the JSON by these):")
+    print(f"  {len(needs_retry)} word(s) got LLM output but the quality gate rejected all of it "
+          f"(check saved[word]['reject_log']; candidates for --word retry, possibly with a "
+          f"higher --top-k so fewer 'suggested' words are needed): {needs_retry[:20]}"
+          f"{' ...' if len(needs_retry) > 20 else ''}")
+    print(f"  {len(degraded)} word(s) succeeded but dropped >=1 category along the way "
+          f"(worth a spot-check via reject_log): {degraded[:20]}{' ...' if len(degraded) > 20 else ''}")
+    print(f"  {len(too_few_senses)} word(s) skipped structurally (fewer than 4 senses embedded) "
+          f"-- not retryable without more senses.")
+    if errored:
+        print(f"  {len(errored)} word(s) errored during processing: {errored}")
 
 
 if __name__ == "__main__":
